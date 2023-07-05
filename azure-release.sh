@@ -157,6 +157,7 @@ function change_var_with_stage(){
 }
 
 function pre_checking(){
+    change_var_with_stage
     local RESULT_CHECK_PLUGIN_HELM_DIFF=$(check_plugin "helm plugin list" "diff")
     local RESULT_CHECK_PLUGIN_HELM_PUSH=$(check_plugin "helm plugin list" "cm-push")
 
