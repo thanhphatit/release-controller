@@ -111,11 +111,17 @@ function check_stage_current(){
 
     if [[ ${STAGE_DEV_USED} == "true" ]];then
         STAGE_CURRENT="DEV"
-    elif [[ ${STAGE_UAT_USED} == "true" ]];then
+    fi
+
+    if [[ ${STAGE_UAT_USED} == "true" ]];then
         STAGE_CURRENT="UAT"
-    elif [[ ${STAGE_DR_USED} == "true" ]];then
+    fi
+
+    if [[ ${STAGE_DR_USED} == "true" ]];then
         STAGE_CURRENT="DR"
-    else
+    fi
+
+    if [[ ${STAGE_PROD_USED} == "true" ]];then
         STAGE_CURRENT="PROD"
     fi
 }
@@ -124,6 +130,8 @@ function change_var_with_stage(){
     check_stage_current
     K8S_CONTEXT=""
     K8S_NAMESPACE=""
+
+    check_var "STAGE_CURRENT"
 
     if [[ ${STAGE_CURRENT} == "DEV" ]];then
         K8S_CONTEXT="${K8S_CONTEXT_DEV}"
@@ -190,10 +198,10 @@ function helm_deploy(){
     check_var "HELM_PRIVATE_REPO_NAME ACR_NAME AZ_USER AZ_PASSWORD"
 
     echo "[+] Helm client version"
-    helm version
+    helm version 2> /dev/null
 
     echo "[+] Check helm plugin exist again !"
-    helm plugin list
+    helm plugin list 2> /dev/null
 
     echo "[+] Helm add repository of company"
     echo "HELM_PRIVATE_REPO_NAME: ${HELM_PRIVATE_REPO_NAME}"
@@ -204,11 +212,11 @@ function helm_deploy(){
         helm repo remove ${HELM_PRIVATE_REPO_NAME} 2> /dev/null
     fi
 
-    helm repo add ${HELM_PRIVATE_REPO_NAME} https://${ACR_NAME}.azurecr.io/helm/v1/repo --username ${AZ_USER} --password ${AZ_PASSWORD}
-    helm registry login ${ACR_NAME}.azurecr.io --username ${AZ_USER} --password ${AZ_PASSWORD}
+    helm repo add ${HELM_PRIVATE_REPO_NAME} https://${ACR_NAME}.azurecr.io/helm/v1/repo --username ${AZ_USER} --password ${AZ_PASSWORD} 2> /dev/null
+    helm registry login ${ACR_NAME}.azurecr.io --username ${AZ_USER} --password ${AZ_PASSWORD} 2> /dev/null
 
-    helm repo update
-    helm repo list
+    helm repo update 2> /dev/null
+    helm repo list 2> /dev/null
     
     local HELM_NAMESPACE_NAME="${K8S_NAMESPACE}"
     local HELM_RELEASE_NAME="${SERVICE_NAME}"
@@ -242,7 +250,7 @@ function helm_deploy(){
                 --namespace ${HELM_NAMESPACE_NAME} \
                 --set image.repository="${AWS_ECR_ACCOUNT_URL}/${IMAGE_NAME}" \
                 --set image.tag="${IMAGE_TAG_BUILD}" \
-                --set timestamp="${CURRENT_UNIXTIME}"
+                --set timestamp="${CURRENT_UNIXTIME}" 2> /dev/null
         else
             echo "Upgrade with application version: ${HELM_VERSION}"
             helm upgrade ${HELM_RELEASE_NAME} ${HELM_PRIVATE_REPO_NAME}/${HELM_CHART_NAME} \
@@ -251,12 +259,12 @@ function helm_deploy(){
                 --namespace ${HELM_NAMESPACE_NAME} \
                 --set image.repository="${AWS_ECR_ACCOUNT_URL}/${IMAGE_NAME}" \
                 --set image.tag="${IMAGE_TAG_BUILD}" \
-                --set timestamp="${CURRENT_UNIXTIME}"
+                --set timestamp="${CURRENT_UNIXTIME}" 2> /dev/null
         fi
     }
 
     check_helm(){
-        helmReleaseName=$(helm list -n ${HELM_NAMESPACE_NAME} | awk '{print $1}' | grep -i ${HELM_RELEASE_NAME} | tr -d ' ' | head -n1)
+        helmReleaseName=$(helm list -n ${HELM_NAMESPACE_NAME} 2> /dev/null | awk '{print $1}' | grep -i ${HELM_RELEASE_NAME} | tr -d ' ' | head -n1)
         if [[ "${helmReleaseName}" == "${HELM_RELEASE_NAME}" ]];then
             upgrade_helm
         else
