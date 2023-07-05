@@ -273,6 +273,7 @@ function main(){
     pre_check_dependencies "helm kubectl"
     pre_checking
     kube_config
+    helm_deploy
 }
 
 main "${@}"
