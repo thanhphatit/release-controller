@@ -220,6 +220,7 @@ function helm_deploy(){
     helm registry login ${ACR_NAME}.azurecr.io --username ${AZ_USER} --password ${AZ_PASSWORD} 2> /dev/null
 
     helm repo update 2> /dev/null
+    echo ""
     helm repo list 2> /dev/null
     
     local HELM_NAMESPACE_NAME="${K8S_NAMESPACE}"
@@ -273,6 +274,7 @@ function helm_deploy(){
         if [[ "${helmReleaseName}" == "${HELM_RELEASE_NAME}" ]];then
             upgrade_helm
         else
+            echo ""
             echo "[WARNING] Sorry, The repo doesn't exist in list !"
         fi 
     }    
