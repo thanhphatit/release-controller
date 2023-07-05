@@ -201,9 +201,11 @@ function helm_deploy(){
     echo "[+] Helm client version"
     helm version 2> /dev/null
 
+    echo ""
     echo "[+] Check helm plugin exist again !"
     helm plugin list 2> /dev/null
 
+    echo ""
     echo "[+] Helm add repository of company"
     echo "HELM_PRIVATE_REPO_NAME: ${HELM_PRIVATE_REPO_NAME}"
     echo "AZ_ACR_ACCOUNT_URL: ${ACR_NAME}.azurecr.io"
@@ -213,6 +215,7 @@ function helm_deploy(){
         helm repo remove ${HELM_PRIVATE_REPO_NAME} 2> /dev/null
     fi
 
+    echo ""
     helm repo add ${HELM_PRIVATE_REPO_NAME} https://${ACR_NAME}.azurecr.io/helm/v1/repo --username ${AZ_USER} --password ${AZ_PASSWORD} 2> /dev/null
     helm registry login ${ACR_NAME}.azurecr.io --username ${AZ_USER} --password ${AZ_PASSWORD} 2> /dev/null
 
@@ -226,8 +229,9 @@ function helm_deploy(){
     local IMAGE_NAME="${SERVICE_NAME}"
     local IMAGE_TAG_BUILD="${DOCKER_TAG}"
 
+    echo ""
     echo "[+] List active Charts in Helm Chart Repository: ${HELM_PRIVATE_REPO_NAME}"
-    helm search repo ${HELM_PRIVATE_REPO_NAME}
+    helm search repo ${HELM_PRIVATE_REPO_NAME} 2> /dev/null
     echo ""
     echo "**************************************"
     echo "*      Helm: Deploy Application      *"
