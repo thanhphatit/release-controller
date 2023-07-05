@@ -1,0 +1,309 @@
+#!/bin/bash
+## Author: Dang Thanh Phat
+## Email: thanhphatit95@gmail.com
+## Web/blogs: www.itblognote.com
+## Description:
+##      Script to deploy release service azure to aks or fa
+
+#### GLOBAL VARIABLES
+echo "##vso[task.setvariable variable=$(Release.ReleaseName);isOutput=true]Release $(Rev:rrr) for build $(Build.DefinitionName)-$(Build.BuildNumber)"
+
+export PATH_LOG_DOCKER_GIT=./one-mdm-api-docker-pipeline/logs
+export PATH_LOG_HELM=./one-mdm-api-helm-pipeline/one-mdm-api-helm/build
+export SERVICE_NAME=$(<$PATH_LOG_DOCKER_GIT/serviceName.log)
+export GIT_COMMIT_ID=$(<$PATH_LOG_DOCKER_GIT/gitCommitID.log)
+export DOCKER_TAG=$(<$PATH_LOG_DOCKER_GIT/dockerImageVersion.log)
+export DOCKER_URL=$(<$PATH_LOG_DOCKER_GIT/dockerURLName.log)
+export HELM_VERSION=$(<$PATH_LOG_HELM/buildNumber.log)
+
+K8S_DOWNLOAD_CONFIG_URL='https://dev.azure.com/devops69/devops-library/_apis/git/repositories/devops-library/Items?path=/config/kube/config&version=master&download=true'
+K8S_CONTEXT_UAT='aia-context-uat'
+K8S_CONTEXT_VNPRD='aia-context-prod'
+K8S_NS_DEV='nsp-vn-d-aks'
+K8S_NS_UAT='nsp-vn-u-aks'
+K8S_NS_DR='nsp-vn-r-aks'
+K8S_NS_VNPRD='nsp-vn-p-aks'
+
+DOWN_USER="$(devopsUser)"
+DOWN_PASSWORD="$(devopsToken)"
+ACR_NAME="$(acrName)"
+AZ_USER="$(acrLogin)"
+AZ_PASSWORD="$(acrPassword)"
+HELM_PRIVATE_REPO_NAME="aia-charts"
+
+STAGE_NAME_DEV=("DEV")
+STAGE_NAME_UAT=("UAT")
+STAGE_NAME_DR=("DR")
+STAGE_NAME_PROD=("VNPRD" "VNPROD")
+
+#### SHELL SETTING
+set -o pipefail
+# set -e ### When you use -e it will export error when logic function fail, example: grep "yml" if yml not found
+
+#### VARIABLES
+STAGE="$(echo "$(Release.EnvironmentName)" | tr '[:upper:]' '[:lower:]')"
+METHOD=${1:-k8s} ### Value is k8s or fa
+
+### Used with echo have flag -e
+RLC="\033[1;31m"    ## Use redlight color
+GC="\033[0;32m"     ## Use green color
+YC="\033[0;33m"     ## Use yellow color
+BC="\033[0;34m"     ## Use blue color
+EC="\033[0m"        ## End color with no color
+
+#### FUNCTIONS
+
+function check_var(){
+    local VAR_LIST=(${1})
+    
+    for var in ${VAR_LIST[@]}; do
+        if [[ -z "$(eval echo $(echo $`eval echo "${var}"`))" ]];then
+            echo -e "${YC}[CAUTIONS] Variable ${var} not found!"
+            exit 1
+        fi
+    done
+
+    #### Example: check_var "DEVOPS THANHPHATIT"
+}
+
+function check_plugin(){
+    local COMMAND_PLUGIN_LIST="${1}"
+    local PLUGIN_LIST=(${2})
+
+    local TOOLS_NAME="$(echo "${COMMAND_PLUGIN_LIST}" | awk '{print $1}')"
+
+    for plugin in ${PLUGIN_LIST[@]}; do
+        # If not found tools => exit
+        if [[ ! $(${COMMAND_PLUGIN_LIST} 2>/dev/null | grep -i "^${plugin}") ]];then
+cat << ALERTS
+[x] Not found this ${TOOLS_NAME} plugin [${plugin}] on machine.
+
+Exit.
+ALERTS
+            exit 1
+        fi
+    done
+
+    #### Example: check_plugin "helm plugin list" "cm-push diff s3" 
+}
+
+function pre_check_dependencies(){
+    ## All tools used in this script
+    local TOOLS_LIST=(${1})
+
+    for tools in ${TOOLS_LIST[@]}; do
+        # If not found tools => exit
+        if [[ ! $(command -v ${tools}) ]];then
+cat << ALERTS
+[x] Not found tool [${tools}] on machine.
+
+Exit.
+ALERTS
+            exit 1
+        fi
+    done
+
+    #### Example: pre_check_dependencies "helm" 
+}
+
+function download_file(){
+    local DOWN_USER=${1}
+    local DOWN_PASSWORD=${2}
+    local DOWN_FILE_EXPORT_NAME=${3}
+    local DOWN_URL=${4}
+
+    curl -u ${DOWN_USER}:${DOWN_PASSWORD} -o ${DOWN_FILE_EXPORT_NAME} ${DOWN_URL} &
+    wait
+
+    if [[ -f ${DOWN_FILE_EXPORT_NAME} ]];then
+        echo -e "${GC}[DOWNLOAD]: ${DOWN_FILE_EXPORT_NAME} SUCCESS ****"
+    else
+        echo -e "${RLC}[ERROR] not found download file!"
+    fi
+}
+
+function check_stage_used(){
+    local STAGE_LIST=(${1})
+    
+    for stages in ${STAGE_LIST[@]}; do
+        local stages="$(echo "${stages}" | tr '[:upper:]' '[:lower:]')"
+        if [[ ${stages} == ${STAGE} ]];then
+            echo "true"
+        fi
+    done
+}
+
+function check_stage_current(){
+    local STAGE_DEV_USED=$(check_stage_used "${STAGE_NAME_DEV}")
+    local STAGE_UAT_USED=$(check_stage_used "${STAGE_NAME_UAT}")
+    local STAGE_DR_USED=$(check_stage_used "${STAGE_NAME_DR}")
+    local STAGE_PROD_USED=$(check_stage_used "${STAGE_NAME_PROD}")
+
+    if [[ ${STAGE_DEV_USED} == "true" ]];then
+        STAGE_CURRENT="DEV"
+    elif [[ ${STAGE_UAT_USED} == "true" ]];then
+        STAGE_CURRENT="UAT"
+    elif [[ ${STAGE_DR_USED} == "true" ]];then
+        STAGE_CURRENT="DR"
+    else
+        STAGE_CURRENT="PROD"
+    fi
+}
+
+function change_var_with_stage(){
+    check_stage_current
+    K8S_CONTEXT=""
+    K8S_NAMESPACE=""
+
+    if [[ ${STAGE_CURRENT} == "DEV" ]];then
+        K8S_CONTEXT="${K8S_CONTEXT_DEV}"
+        K8S_NAMESPACE="${K8S_NS_DEV}"
+    fi
+
+    if [[ ${STAGE_CURRENT} == "UAT" ]];then
+        K8S_CONTEXT="${K8S_CONTEXT_UAT}"
+        K8S_NAMESPACE="${K8S_NS_UAT}"
+    fi
+
+    if [[ ${STAGE_CURRENT} == "DR" ]];then
+        K8S_CONTEXT="${K8S_CONTEXT_DR}"
+        K8S_NAMESPACE="${K8S_NS_DR}"
+    fi
+
+    if [[ ${STAGE_CURRENT} == "PROD" ]];then
+        K8S_CONTEXT="${K8S_CONTEXT_VNPRD}"
+        K8S_NAMESPACE="${K8S_NS_VNPRD}"
+    fi
+
+    check_var "K8S_CONTEXT K8S_NAMESPACE"
+
+    echo -e "${GC}Show all variables..."
+    echo "[+] Git CommitID: ${GIT_COMMIT_ID}"
+    echo "[+] Docker Tag: ${STAGE}.${DOCKER_TAG}"
+    echo "[+] Docker URL: ${DOCKER_URL}"
+    echo "[+] Stage: ${STAGE}"
+    echo "[+] K8S Context: ${K8S_CONTEXT}"
+    echo "[+] K8S Namespace: ${K8S_NAMESPACE}"
+}
+
+function pre_checking(){
+    local RESULT_CHECK_PLUGIN_HELM_DIFF=$(check_plugin "helm plugin list" "diff")
+    local RESULT_CHECK_PLUGIN_HELM_PUSH=$(check_plugin "helm plugin list" "cm-push")
+
+    if [[ "${RESULT_CHECK_PLUGIN_HELM_DIFF}" != "" ]];then
+        helm plugin install https://github.com/databus23/helm-diff &>/dev/null
+    fi
+
+    if [[ "${RESULT_CHECK_PLUGIN_HELM_PUSH}" != "" ]];then
+        helm plugin install https://github.com/chartmuseum/helm-push.git &>/dev/null
+    fi
+}
+
+function kube_config(){
+    check_var "DOWN_USER DOWN_PASSWORD"
+    echo "Create ${HOME}/.kube"
+    [ -d ${HOME}/.kube ] && rm -rf ${HOME}/.kube
+    mkdir ${HOME}/.kube
+
+    download_file "${DOWN_USER}" "${DOWN_PASSWORD}" "${HOME}/.kube/config" "${K8S_DOWNLOAD_CONFIG_URL}"
+    kubectl config use-context ${K8S_CONTEXT}
+}
+
+function helm_deploy(){
+    echo "**************************************"
+    echo "*     Helm: Add Helm Repository      *"
+    echo "**************************************"
+    echo ""
+
+    #### We will check variable before
+    check_var "HELM_PRIVATE_REPO_NAME ACR_NAME AZ_USER AZ_PASSWORD"
+
+    echo "[+] Helm client version"
+    helm version
+
+    echo "[+] Check helm plugin exist again !"
+    helm plugin list
+
+    echo "[+] Helm add repository of company"
+    echo "HELM_PRIVATE_REPO_NAME: ${HELM_PRIVATE_REPO_NAME}"
+    echo "AZ_ACR_ACCOUNT_URL: ${ACR_NAME}.azurecr.io"
+
+    if [[ "$(helm repo list 2> /dev/null | grep -i "${HELM_PRIVATE_REPO_NAME}")" ]];then
+        # Remove current setting Helm Repo to add new
+        helm repo remove ${HELM_PRIVATE_REPO_NAME} 2> /dev/null
+    fi
+
+    helm repo add ${HELM_PRIVATE_REPO_NAME} https://${ACR_NAME}.azurecr.io/helm/v1/repo --username ${AZ_USER} --password ${AZ_PASSWORD}
+    helm registry login ${ACR_NAME}.azurecr.io --username ${AZ_USER} --password ${AZ_PASSWORD}
+
+    helm repo update
+    helm repo list
+    
+    local HELM_NAMESPACE_NAME="${K8S_NAMESPACE}"
+    local HELM_RELEASE_NAME="${SERVICE_NAME}"
+    local HELM_CHART_NAME="general-application"
+    local AZ_ACR_ACCOUNT_URL="${ACR_NAME}.azurecr.io"
+    local IMAGE_NAME="${SERVICE_NAME}"
+    local IMAGE_TAG_BUILD="${DOCKER_TAG}"
+
+    echo "[+] List active Charts in Helm Chart Repository: ${HELM_PRIVATE_REPO_NAME}"
+    helm search repo ${HELM_PRIVATE_REPO_NAME}
+    echo ""
+    echo "**************************************"
+    echo "*      Helm: Deploy Application      *"
+    echo "**************************************"
+    echo -e "\n[+] Start deployment with helm"
+    echo "HELM_NAMESPACE_NAME: ${HELM_NAMESPACE_NAME}"
+    echo "HELM_RELEASE_NAME: ${HELM_RELEASE_NAME}"
+    echo "HELM_CHART_NAME: ${HELM_PRIVATE_REPO_NAME}/${HELM_CHART_NAME}"
+    echo "IMAGE_URL: ${AZ_ACR_ACCOUNT_URL}/${IMAGE_NAME}"
+    echo "IMAGE_TAG_BUILD: ${IMAGE_TAG_BUILD}"
+
+    # We upgrade helm only, no install helm release from app-repo
+    # We define all settings for helm release application in other repository
+    CURRENT_UNIXTIME=$(date +%s)
+    
+    upgrade_helm(){
+        if [[ "${HELM_VERSION}" == "latest" || "${HELM_VERSION}" == "" ]];then
+            echo "Upgrade with application version: ${HELM_VERSION}"
+            helm upgrade ${HELM_RELEASE_NAME} ${HELM_PRIVATE_REPO_NAME}/${HELM_CHART_NAME} \
+                --reuse-values \
+                --namespace ${HELM_NAMESPACE_NAME} \
+                --set image.repository="${AWS_ECR_ACCOUNT_URL}/${IMAGE_NAME}" \
+                --set image.tag="${IMAGE_TAG_BUILD}" \
+                --set timestamp="${CURRENT_UNIXTIME}"
+        else
+            echo "Upgrade with application version: ${HELM_VERSION}"
+            helm upgrade ${HELM_RELEASE_NAME} ${HELM_PRIVATE_REPO_NAME}/${HELM_CHART_NAME} \
+                --version ${HELM_VERSION} \
+                --reuse-values \
+                --namespace ${HELM_NAMESPACE_NAME} \
+                --set image.repository="${AWS_ECR_ACCOUNT_URL}/${IMAGE_NAME}" \
+                --set image.tag="${IMAGE_TAG_BUILD}" \
+                --set timestamp="${CURRENT_UNIXTIME}"
+        fi
+    }
+
+    check_helm(){
+        helmReleaseName=$(helm list -n ${HELM_NAMESPACE_NAME} | awk '{print $1}' | grep -i ${HELM_RELEASE_NAME} | tr -d ' ' | head -n1)
+        if [[ "${helmReleaseName}" == "${HELM_RELEASE_NAME}" ]];then
+            upgrade_helm
+        else
+            echo "[WARNING] Sorry, The repo doesn't exist in list !"
+        fi 
+    }    
+
+    check_helm
+}
+#### START
+
+function main(){
+    check_var "SERVICE_NAME GIT_COMMIT_ID DOCKER_TAG DOCKER_URL HELM_VERSION K8S_DOWNLOAD_CONFIG_URL K8S_CONTEXT_UAT K8S_CONTEXT_VNPRD K8S_NS_DEV K8S_NS_UAT K8S_NS_DR K8S_NS_VNPRD"
+    pre_check_dependencies "helm kubectl"
+    pre_checking
+    kube_config
+}
+
+main "${@}"
+
+exit 0
