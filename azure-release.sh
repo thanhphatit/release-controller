@@ -12,7 +12,6 @@ set -o pipefail
 # set -e ### When you use -e it will export error when logic function fail, example: grep "yml" if yml not found
 
 #### VARIABLES
-STAGE="$(echo "$(Release.EnvironmentName)" | tr '[:upper:]' '[:lower:]')"
 METHOD=${1:-k8s} ### Value is k8s or fa
 
 ### Used with echo have flag -e
@@ -269,7 +268,7 @@ function helm_deploy(){
 #### START
 
 function main(){
-    check_var "SERVICE_NAME GIT_COMMIT_ID DOCKER_TAG DOCKER_URL HELM_VERSION K8S_DOWNLOAD_CONFIG_URL K8S_CONTEXT_UAT K8S_CONTEXT_VNPRD K8S_NS_DEV K8S_NS_UAT K8S_NS_DR K8S_NS_VNPRD"
+    check_var "SERVICE_NAME GIT_COMMIT_ID DOCKER_TAG DOCKER_URL K8S_DOWNLOAD_CONFIG_URL K8S_CONTEXT_UAT K8S_CONTEXT_VNPRD K8S_NS_DEV K8S_NS_UAT K8S_NS_DR K8S_NS_VNPRD"
     pre_check_dependencies "helm kubectl"
     pre_checking
     kube_config
