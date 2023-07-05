@@ -189,6 +189,18 @@ function kube_config(){
     kubectl config use-context ${K8S_CONTEXT}
 }
 
+function docker_deploy_latest(){
+    local AZ_ACR_ACCOUNT_URL="${ACR_NAME}.azurecr.io"
+    local IMAGE_NAME="${SERVICE_NAME}" 
+    local IMAGE_TAG_BUILD="${DOCKER_TAG}"
+
+    check_var "STAGE_CURRENT IMAGE_NAME IMAGE_TAG_BUILD"
+
+    docker login -u ${AZ_USER} -p ${AZ_PASSWORD} ${AZ_ACR_ACCOUNT_URL}
+    docker tag ${AZ_ACR_ACCOUNT_URL}/${IMAGE_NAME}:${IMAGE_TAG_BUILD} ${AZ_ACR_ACCOUNT_URL}/${IMAGE_NAME}:${STAGE_CURRENT}.latest
+    docker push ${AZ_ACR_ACCOUNT_URL}/${IMAGE_NAME}:${STAGE_CURRENT}.latest
+}
+
 function helm_deploy(){
     echo "**************************************"
     echo "*     Helm: Add Helm Repository      *"
@@ -285,10 +297,11 @@ function helm_deploy(){
 
 function main(){
     check_var "SERVICE_NAME GIT_COMMIT_ID DOCKER_TAG DOCKER_URL K8S_DOWNLOAD_CONFIG_URL K8S_CONTEXT_UAT K8S_CONTEXT_VNPRD K8S_NS_DEV K8S_NS_UAT K8S_NS_DR K8S_NS_VNPRD"
-    pre_check_dependencies "helm kubectl"
+    pre_check_dependencies "helm kubectl docker"
     pre_checking
     kube_config
     helm_deploy
+    docker_deploy_latest
 }
 
 main "${@}"
