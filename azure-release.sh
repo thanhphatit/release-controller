@@ -14,6 +14,11 @@ set -o pipefail
 #### VARIABLES
 METHOD=${1:-k8s} ### Value is k8s or fa
 
+STAGE_SYNTAX_DEV="DEV"
+STAGE_SYNTAX_UAT="UAT"
+STAGE_SYNTAX_DR="DR"
+STAGE_SYNTAX_PROD="VNPRD"
+
 ### Used with echo have flag -e
 RLC="\033[1;31m"    ## Use redlight color
 GC="\033[0;32m"     ## Use green color
@@ -93,21 +98,17 @@ function download_file(){
 }
 
 function check_stage_used(){
-    local STAGE_LIST=(${1})
-    
-    for stages in ${STAGE_LIST[@]}; do
-        local stages="$(echo "${stages}" | tr '[:upper:]' '[:lower:]')"
-        if [[ ${stages} == ${STAGE} ]];then
-            echo "true"
-        fi
-    done
+    local STAGE_LOW="$(echo "${1}" | tr '[:upper:]' '[:lower:]')"
+    if [[ $(echo "${STAGE}" | grep "${STAGE_LOW}") ]];then
+        echo "true"
+    fi
 }
 
 function check_stage_current(){
-    local STAGE_DEV_USED=$(check_stage_used "${STAGE_NAME_DEV}")
-    local STAGE_UAT_USED=$(check_stage_used "${STAGE_NAME_UAT}")
-    local STAGE_DR_USED=$(check_stage_used "${STAGE_NAME_DR}")
-    local STAGE_PROD_USED=$(check_stage_used "${STAGE_NAME_PROD}")
+    local STAGE_DEV_USED=$(check_stage_used "${STAGE_SYNTAX_DEV}")
+    local STAGE_UAT_USED=$(check_stage_used "${STAGE_SYNTAX_UAT}")
+    local STAGE_DR_USED=$(check_stage_used "${STAGE_SYNTAX_DR}")
+    local STAGE_PROD_USED=$(check_stage_used "${STAGE_SYNTAX_PROD}")
 
     if [[ ${STAGE_DEV_USED} == "true" ]];then
         STAGE_CURRENT="DEV"
