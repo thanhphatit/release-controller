@@ -6,35 +6,6 @@
 ##      Script to deploy release service azure to aks or fa
 
 #### GLOBAL VARIABLES
-echo "##vso[task.setvariable variable=$(Release.ReleaseName);isOutput=true]Release $(Rev:rrr) for build $(Build.DefinitionName)-$(Build.BuildNumber)"
-
-export PATH_LOG_DOCKER_GIT=./one-mdm-api-docker-pipeline/logs
-export PATH_LOG_HELM=./one-mdm-api-helm-pipeline/one-mdm-api-helm/build
-export SERVICE_NAME=$(<$PATH_LOG_DOCKER_GIT/serviceName.log)
-export GIT_COMMIT_ID=$(<$PATH_LOG_DOCKER_GIT/gitCommitID.log)
-export DOCKER_TAG=$(<$PATH_LOG_DOCKER_GIT/dockerImageVersion.log)
-export DOCKER_URL=$(<$PATH_LOG_DOCKER_GIT/dockerURLName.log)
-export HELM_VERSION=$(<$PATH_LOG_HELM/buildNumber.log)
-
-K8S_DOWNLOAD_CONFIG_URL='https://dev.azure.com/devops69/devops-library/_apis/git/repositories/devops-library/Items?path=/config/kube/config&version=master&download=true'
-K8S_CONTEXT_UAT='aia-context-uat'
-K8S_CONTEXT_VNPRD='aia-context-prod'
-K8S_NS_DEV='nsp-vn-d-aks'
-K8S_NS_UAT='nsp-vn-u-aks'
-K8S_NS_DR='nsp-vn-r-aks'
-K8S_NS_VNPRD='nsp-vn-p-aks'
-
-DOWN_USER="$(devopsUser)"
-DOWN_PASSWORD="$(devopsToken)"
-ACR_NAME="$(acrName)"
-AZ_USER="$(acrLogin)"
-AZ_PASSWORD="$(acrPassword)"
-HELM_PRIVATE_REPO_NAME="aia-charts"
-
-STAGE_NAME_DEV=("DEV")
-STAGE_NAME_UAT=("UAT")
-STAGE_NAME_DR=("DR")
-STAGE_NAME_PROD=("VNPRD" "VNPROD")
 
 #### SHELL SETTING
 set -o pipefail
