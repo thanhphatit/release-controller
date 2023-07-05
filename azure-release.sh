@@ -12,7 +12,7 @@ set -o pipefail
 # set -e ### When you use -e it will export error when logic function fail, example: grep "yml" if yml not found
 
 #### VARIABLES
-METHOD=${1:-k8s} ### Value is k8s or fa
+OPTION=${1:-k8s} ### Value is k8s or fa
 
 STAGE_SYNTAX_DEV="DEV"
 STAGE_SYNTAX_UAT="UAT"
@@ -39,6 +39,38 @@ function check_var(){
     done
 
     #### Example: check_var "DEVOPS THANHPHATIT"
+}
+
+function about(){
+cat <<ABOUT
+
+*********************************************************
+* Author: DANG THANH PHAT                               *
+* Email: thanhphat@itblognote.com                       *
+* Blog: www.itblognote.com                              *
+* Version: 0.5                                          *
+* Purpose: Tools to release application to k8s or fa.   *
+*********************************************************
+
+Use --help or -h to check syntax, please !
+
+ABOUT
+    exit 1
+}
+
+function help(){
+cat <<HELP
+
+Usage: azure-release [options...]
+
+[*] OPTIONS:
+    -h, --help            Show help
+    -v, --version         Show info and version
+    k8s                   (This is default value) - Start deploy application to k8s
+    fa                    Start deploy functions app to Azure 
+
+HELP
+    exit 1
 }
 
 function check_plugin(){
@@ -196,14 +228,14 @@ function docker_deploy_latest(){
 
     check_var "STAGE_CURRENT IMAGE_NAME IMAGE_TAG_BUILD"
 
-    docker login -u ${AZ_USER} -p ${AZ_PASSWORD} ${AZ_ACR_ACCOUNT_URL}
-
-    if [[ "$(docker images -q ${IMAGE_NAME}:${IMAGE_TAG_BUILD} 2> /dev/null)" == "" ]]; then
+    docker login -u ${AZ_USER} -p ${AZ_PASSWORD} ${AZ_ACR_ACCOUNT_URL} 2> /dev/null
+    docker images -q ${IMAGE_NAME}:${IMAGE_TAG_BUILD}
+    if [[ "$(docker images --format "{{.Repository}}:{{.Tag}}" | grep -q "${IMAGE_NAME}:${IMAGE_TAG_BUILD}")" ]]; then
         docker pull ${AZ_ACR_ACCOUNT_URL}/${IMAGE_NAME}:${IMAGE_TAG_BUILD}
-    else
-        docker tag ${AZ_ACR_ACCOUNT_URL}/${IMAGE_NAME}:${IMAGE_TAG_BUILD} ${AZ_ACR_ACCOUNT_URL}/${IMAGE_NAME}:${STAGE_CURRENT}.latest
-        docker push ${AZ_ACR_ACCOUNT_URL}/${IMAGE_NAME}:${STAGE_CURRENT}.latest
     fi
+
+    docker tag ${AZ_ACR_ACCOUNT_URL}/${IMAGE_NAME}:${IMAGE_TAG_BUILD} ${AZ_ACR_ACCOUNT_URL}/${IMAGE_NAME}:${STAGE_CURRENT}.latest
+    docker push ${AZ_ACR_ACCOUNT_URL}/${IMAGE_NAME}:${STAGE_CURRENT}.latest
 }
 
 function helm_deploy(){
@@ -301,12 +333,23 @@ function helm_deploy(){
 #### START
 
 function main(){
-    check_var "SERVICE_NAME GIT_COMMIT_ID DOCKER_TAG DOCKER_URL K8S_DOWNLOAD_CONFIG_URL K8S_CONTEXT_UAT K8S_CONTEXT_VNPRD K8S_NS_DEV K8S_NS_UAT K8S_NS_DR K8S_NS_VNPRD"
-    pre_check_dependencies "helm kubectl docker"
-    pre_checking
-    kube_config
-    helm_deploy
-    docker_deploy_latest
+    # Option based on ${OPTION} arg
+    case ${OPTION} in
+    "-v" | "--version")
+        about
+        ;;
+    "-h" | "--help")
+        help
+        ;;
+    *)
+        check_var "SERVICE_NAME GIT_COMMIT_ID DOCKER_TAG DOCKER_URL K8S_DOWNLOAD_CONFIG_URL K8S_CONTEXT_UAT K8S_CONTEXT_VNPRD K8S_NS_DEV K8S_NS_UAT K8S_NS_DR K8S_NS_VNPRD"
+        pre_check_dependencies "helm kubectl docker"
+        pre_checking
+        kube_config
+        helm_deploy
+        docker_deploy_latest
+        ;;
+    esac
 }
 
 main "${@}"
