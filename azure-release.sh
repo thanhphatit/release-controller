@@ -19,6 +19,8 @@ STAGE_SYNTAX_UAT="UAT"
 STAGE_SYNTAX_DR="DR"
 STAGE_SYNTAX_VNPRD="VNPRD"
 
+HELM_LIST_MAX_LIMIT="--max 2605"
+
 ### Used with echo have flag -e
 RLC="\033[1;31m"    ## Use redlight color
 GC="\033[0;32m"     ## Use green color
@@ -343,7 +345,7 @@ function helm_deploy(){
     }
 
     check_helm(){
-        helmReleaseName=$(helm list -n ${HELM_NAMESPACE_NAME} 2> /dev/null | awk '{print $1}' | grep -i ${HELM_RELEASE_NAME} | tr -d ' ' | head -n1)
+        helmReleaseName=$(helm list -n ${HELM_NAMESPACE_NAME} ${HELM_LIST_MAX_LIMIT} 2> /dev/null | awk '{print $1}' | grep -i ${HELM_RELEASE_NAME} | tr -d ' ' | head -n1)
         if [[ "${helmReleaseName}" == "${HELM_RELEASE_NAME}" ]];then
             upgrade_helm
         else
