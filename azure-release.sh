@@ -167,27 +167,27 @@ function change_var_with_stage(){
     check_var "STAGE_CURRENT"
 
     if [[ ${STAGE_CURRENT} == "dev" ]];then
-        K8S_CONTEXT="${K8S_CONTEXT_DEV}"
-        K8S_NAMESPACE="${K8S_NS_DEV}"
+        export K8S_CONTEXT="${K8S_CONTEXT_DEV}"
+        export K8S_NAMESPACE="${K8S_NS_DEV}"
     fi
 
     if [[ ${STAGE_CURRENT} == "uat" ]];then
-        K8S_CONTEXT="${K8S_CONTEXT_UAT}"
-        K8S_NAMESPACE="${K8S_NS_UAT}"
+        export K8S_CONTEXT="${K8S_CONTEXT_UAT}"
+        export K8S_NAMESPACE="${K8S_NS_UAT}"
     fi
 
     if [[ ${STAGE_CURRENT} == "dr" ]];then
-        K8S_CONTEXT="${K8S_CONTEXT_DR}"
-        K8S_NAMESPACE="${K8S_NS_DR}"
+        export K8S_CONTEXT="${K8S_CONTEXT_DR}"
+        export K8S_NAMESPACE="${K8S_NS_DR}"
     fi
 
     if [[ ${STAGE_CURRENT} == "vnprd" ]];then
-        K8S_CONTEXT="${K8S_CONTEXT_VNPRD}"
-        K8S_NAMESPACE="${K8S_NS_VNPRD}"
+        export K8S_CONTEXT="${K8S_CONTEXT_VNPRD}"
+        export K8S_NAMESPACE="${K8S_NS_VNPRD}"
     fi
 
     if [[ ${BUILD_MULTI_ENV} != "false" || ${BUILD_MULTI_ENV} != "False" ]];then
-        DOCKER_TAG="${STAGE_CURRENT}.${DOCKER_TAG}"
+        export DOCKER_TAG="${STAGE_CURRENT}.${DOCKER_TAG}"
     fi
 
     check_var "K8S_CONTEXT K8S_NAMESPACE"
@@ -314,7 +314,7 @@ function helm_deploy(){
 
     # We upgrade helm only, no install helm release from app-repo
     # We define all settings for helm release application in other repository
-    CURRENT_UNIXTIME=$(date +%s)
+    local CURRENT_UNIXTIME=$(date +%s)
     
     upgrade_helm(){
         if [[ "${HELM_VERSION}" == "latest" || "${HELM_VERSION}" == "" ]];then
@@ -338,7 +338,7 @@ function helm_deploy(){
     }
 
     check_helm(){
-        helmReleaseName=$(helm list -n ${HELM_NAMESPACE_NAME} ${HELM_LIST_MAX_LIMIT} 2> /dev/null | awk '{print $1}' | grep -i ${HELM_RELEASE_NAME} | tr -d ' ' | head -n1)
+        local helmReleaseName=$(helm list -n ${HELM_NAMESPACE_NAME} ${HELM_LIST_MAX_LIMIT} 2> /dev/null | awk '{print $1}' | grep -i ${HELM_RELEASE_NAME} | tr -d ' ' | head -n1)
         
         if [[ "${helmReleaseName}" == "${HELM_RELEASE_NAME}" ]];then
             upgrade_helm
