@@ -191,7 +191,7 @@ function change_var_with_stage(){
     fi
 
     check_var "K8S_CONTEXT K8S_NAMESPACE"
-
+    echo ""
     echo "*******************************"
     echo "*        SHOW VARIABLES       *"
     echo "*******************************"
@@ -208,6 +208,7 @@ function change_var_with_stage(){
     echo "[*] STAGE: ${STAGE}"
     echo "[*] K8S_CONTEXT: ${K8S_CONTEXT}"
     echo "[*] K8S_NAMESPACE: ${K8S_NAMESPACE}"
+    echo ""
 }
 
 function pre_checking(){
@@ -241,17 +242,14 @@ function docker_deploy_latest(){
     local AZ_ACR_ACCOUNT_URL="${ACR_NAME}.azurecr.io"
     local IMAGE_NAME="${SERVICE_NAME}" 
     local IMAGE_TAG_BUILD="${DOCKER_TAG}"
-
+    
     check_var "STAGE_CURRENT IMAGE_NAME IMAGE_TAG_BUILD"
 
     docker login -u ${AZ_USER} -p ${AZ_PASSWORD} ${AZ_ACR_ACCOUNT_URL} 2> /dev/null
 
     if [[ ! $(docker images --format "{{.Repository}}:{{.Tag}}" | grep "${IMAGE_NAME}:${IMAGE_TAG_BUILD}") ]]; then
-        echo "[*][WARNING] ${IMAGE_NAME}:${IMAGE_TAG_BUILD} not found"
+        echo "[>][WARNING] ${IMAGE_NAME}:${IMAGE_TAG_BUILD} not found"
         docker pull ${AZ_ACR_ACCOUNT_URL}/${IMAGE_NAME}:${IMAGE_TAG_BUILD}
-        
-        docker images --format "{{.Repository}}:{{.Tag}}"
-        docker images -q ${IMAGE_NAME}:${IMAGE_TAG_BUILD}
     fi
 
     docker tag ${AZ_ACR_ACCOUNT_URL}/${IMAGE_NAME}:${IMAGE_TAG_BUILD} ${AZ_ACR_ACCOUNT_URL}/${IMAGE_NAME}:${STAGE_CURRENT}.latest
@@ -344,7 +342,8 @@ function helm_deploy(){
             upgrade_helm
         else
             echo ""
-            echo "[WARNING] Sorry, The repo doesn't exist in list !"
+            echo "[>][WARNING] Sorry, The helm ${HELM_RELEASE_NAME} doesn't exist in list !"
+            exit 1
         fi 
     }    
 
