@@ -258,6 +258,7 @@ function docker_deploy_latest(){
 }
 
 function helm_deploy(){
+    echo ""
     echo "**************************************"
     echo "*     Helm: Add Helm Repository      *"
     echo "**************************************"
@@ -355,8 +356,10 @@ function helm_deploy(){
             PID_UPGRADE_HELM=$!
             wait ${PID_UPGRADE_HELM}
             STATUS_PID_UPGRADE_HELM=$?
-            echo "${PID_UPGRADE_HELM} - ${STATUS_PID_UPGRADE_HELM}"
-            docker_deploy_latest
+
+            if [[ "${STATUS_PID_UPGRADE_HELM}" == "0" ]];then
+                docker_deploy_latest
+            fi
         fi
 
         # Cleanup when done process each kubernetes provider
