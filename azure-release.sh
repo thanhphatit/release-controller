@@ -356,6 +356,32 @@ function helm_deploy(){
     check_helm
     return 0
 }
+
+function run_and_check_status_func(){
+    pre_checking &
+    PID_PRE_CHECKING=$!
+
+    kube_config &
+    PID_KUBE_CONFIG=$!
+
+    helm_deploy &
+    PID_HELM_DEPLOY=$!
+
+    wait $PID_PRE_CHECKING
+    STATUS_PID_PRE_CHECKING=$?
+
+    wait $PID_KUBE_CONFIG
+    STATUS_PID_KUBE_CONFIG=$?
+
+    wait $PID_HELM_DEPLOY
+    STATUS_PID_HELM_DEPLOY=$?
+    
+    if [ ${STATUS_PID_HELM_DEPLOY} -eq 0 ]; then
+        docker_deploy_latest
+    else
+        exit 1
+    fi
+}
 #### START
 
 function main(){
@@ -368,14 +394,7 @@ function main(){
         help
         ;;
     *)
-        pre_checking
-        kube_config
-        
-        if [[ ! helm_deploy ]];then
-            exit 1
-        fi
-        
-        docker_deploy_latest
+        run_and_check_status_func
         ;;
     esac
 }
