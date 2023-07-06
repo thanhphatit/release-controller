@@ -344,8 +344,6 @@ function helm_deploy(){
         fi
     }
 
-    helm list -n ${HELM_NAMESPACE_NAME} ${HELM_LIST_MAX_LIMIT}
-
     check_helm(){
         helmReleaseName=$(helm list -n ${HELM_NAMESPACE_NAME} ${HELM_LIST_MAX_LIMIT} 2> /dev/null | awk '{print $1}' | grep -i ${HELM_RELEASE_NAME} | tr -d ' ' | head -n1)
         
@@ -357,8 +355,13 @@ function helm_deploy(){
             exit 1
         fi 
     }    
-
-    check_helm
+    
+    until $(kubectl cluster-info &>/dev/null)
+    do
+        kube_config
+        check_helm
+    done
+    
     return 0
 }
 
@@ -381,6 +384,12 @@ function run_and_check_status_func(){
     wait $PID_HELM_DEPLOY
     STATUS_PID_HELM_DEPLOY=$?
     
+    if [ ${STATUS_PID_KUBE_CONFIG} -eq 0 ]; then
+        helm_deploy
+    else
+        exit 1
+    fi
+
     if [ ${STATUS_PID_HELM_DEPLOY} -eq 0 ]; then
         docker_deploy_latest
     else
