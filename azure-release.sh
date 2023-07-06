@@ -143,19 +143,19 @@ function check_stage_current(){
     local STAGE_VNPRD_USED=$(check_stage_used "${STAGE_SYNTAX_VNPRD}")
 
     if [[ ${STAGE_DEV_USED} == "true" ]];then
-        STAGE_CURRENT="DEV"
+        STAGE_CURRENT="dev"
     fi
 
     if [[ ${STAGE_UAT_USED} == "true" ]];then
-        STAGE_CURRENT="UAT"
+        STAGE_CURRENT="uat"
     fi
 
     if [[ ${STAGE_DR_USED} == "true" ]];then
-        STAGE_CURRENT="DR"
+        STAGE_CURRENT="dr"
     fi
 
     if [[ ${STAGE_VNPRD_USED} == "true" ]];then
-        STAGE_CURRENT="VNPRD"
+        STAGE_CURRENT="vnprd"
     fi
 }
 
@@ -166,31 +166,35 @@ function change_var_with_stage(){
 
     check_var "STAGE_CURRENT"
 
-    if [[ ${STAGE_CURRENT} == "DEV" ]];then
+    if [[ ${STAGE_CURRENT} == "dev" ]];then
         K8S_CONTEXT="${K8S_CONTEXT_DEV}"
         K8S_NAMESPACE="${K8S_NS_DEV}"
     fi
 
-    if [[ ${STAGE_CURRENT} == "UAT" ]];then
+    if [[ ${STAGE_CURRENT} == "uat" ]];then
         K8S_CONTEXT="${K8S_CONTEXT_UAT}"
         K8S_NAMESPACE="${K8S_NS_UAT}"
     fi
 
-    if [[ ${STAGE_CURRENT} == "DR" ]];then
+    if [[ ${STAGE_CURRENT} == "dr" ]];then
         K8S_CONTEXT="${K8S_CONTEXT_DR}"
         K8S_NAMESPACE="${K8S_NS_DR}"
     fi
 
-    if [[ ${STAGE_CURRENT} == "VNPRD" ]];then
+    if [[ ${STAGE_CURRENT} == "vnprd" ]];then
         K8S_CONTEXT="${K8S_CONTEXT_VNPRD}"
         K8S_NAMESPACE="${K8S_NS_VNPRD}"
+    fi
+
+    if [[ ${BUILD_MULTI_ENV} != "false" || ${BUILD_MULTI_ENV} != "False" ]];then
+        DOCKER_TAG="${STAGE_CURRENT}.${DOCKER_TAG}"
     fi
 
     check_var "K8S_CONTEXT K8S_NAMESPACE"
 
     echo -e "${GC}Show all variables..."
     echo "[+] Git CommitID: ${GIT_COMMIT_ID}"
-    echo "[+] Docker Tag: ${STAGE}.${DOCKER_TAG}"
+    echo "[+] Docker Tag: ${DOCKER_TAG}"
     echo "[+] Docker URL: ${DOCKER_URL}"
     echo "[+] Stage: ${STAGE}"
     echo "[+] K8S Context: ${K8S_CONTEXT}"
@@ -225,7 +229,6 @@ function docker_deploy_latest(){
     local AZ_ACR_ACCOUNT_URL="${ACR_NAME}.azurecr.io"
     local IMAGE_NAME="${SERVICE_NAME}" 
     local IMAGE_TAG_BUILD="${DOCKER_TAG}"
-    local STAGE_CURRENT="$(echo "${STAGE_CURRENT}" | tr '[:upper:]' '[:lower:]')"
 
     check_var "STAGE_CURRENT IMAGE_NAME IMAGE_TAG_BUILD"
 
@@ -234,7 +237,7 @@ function docker_deploy_latest(){
     if [[ ! $(docker images --format "{{.Repository}}:{{.Tag}}" | grep "${IMAGE_NAME}:${IMAGE_TAG_BUILD}") ]]; then
         echo "[*][WARNING] ${IMAGE_NAME}:${IMAGE_TAG_BUILD} not found"
         docker pull ${AZ_ACR_ACCOUNT_URL}/${IMAGE_NAME}:${IMAGE_TAG_BUILD}
-        echo "Chao ${ENV_BUILD}"
+        
         docker images --format "{{.Repository}}:{{.Tag}}"
         docker images -q ${IMAGE_NAME}:${IMAGE_TAG_BUILD}
     fi
