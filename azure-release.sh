@@ -337,43 +337,36 @@ function helm_deploy(){
         fi
     }
 
-    helm list -n ${HELM_NAMESPACE_NAME} ${HELM_LIST_MAX_LIMIT}
+    helm list -n ${HELM_NAMESPACE_NAME} ${HELM_LIST_MAX_LIMIT} 2> /dev/null | awk '{print $1}' | grep -i ${HELM_RELEASE_NAME}
     check_helm(){
-        local helmReleaseName=$(helm list -n ${HELM_NAMESPACE_NAME} ${HELM_LIST_MAX_LIMIT} 2> /dev/null | awk '{print $1}' | grep -i ${HELM_RELEASE_NAME} | tr -d ' ' | head -n1)
-        
-        if [[ "${helmReleaseName}" == "${HELM_RELEASE_NAME}" ]];then
-            upgrade_helm
-        else
+        # Get list helm release exists in specific Kubernetes Cluster
+        LIST_HELM_RELEASE_K8S=$(mktemp /tmp/tempfile-list-helmreleases-$SERVICE_IDENTIFIER-XXXXXXXX)
+        if [[ ! -f ${LIST_HELM_RELEASE_K8S} ]];then
+            touch ${LIST_HELM_RELEASE_K8S}
+        fi
+
+        helm list -n ${HELM_NAMESPACE_NAME} ${HELM_LIST_MAX_LIMIT} > ${LIST_HELM_RELEASE_K8S}
+
+        if [[ ! "$(grep -i "${HELM_NAMESPACE_NAME}" ${LIST_HELM_RELEASE_K8S} | awk '{print $1}' | grep -i "^${HELM_RELEASE_NAME}$")" ]];then
             echo ""
-            echo "[>][WARNING] Sorry, The helm ${HELM_RELEASE_NAME} doesn't exist in list !"
+            echo "[+] CHECKING: not found Helm Release [${HELM_RELEASE_NAME}] namespace [${HELM_NAMESPACE_NAME}]"
             exit 1
+        else
+            upgrade_helm &
+            PID_UPGRADE_HELM=$!
+            wait ${PID_UPGRADE_HELM}
+            STATUS_PID_UPGRADE_HELM=$?
+            echo "${PID_UPGRADE_HELM} - ${STATUS_PID_UPGRADE_HELM}"
+            docker_deploy_latest
+        fi
+
+        # Cleanup when done process each kubernetes provider
+        if [[ -f ${LIST_HELM_RELEASE_K8S} ]];then
+            rm -f ${LIST_HELM_RELEASE_K8S}
         fi 
     }    
-    
-    until $(kubectl cluster-info &>/dev/null)
-    do
-        kube_config
-        check_helm
-    done
 }
 
-function run_and_check_status_func(){
-    pre_checking
-
-    kube_config
-
-    helm_deploy &
-    PID_HELM_DEPLOY=$!
-
-    wait $PID_HELM_DEPLOY
-    STATUS_PID_HELM_DEPLOY=$?
-
-    if [ ${STATUS_PID_HELM_DEPLOY} -eq 0 ]; then
-        docker_deploy_latest
-    else
-        exit 1
-    fi
-}
 #### START
 
 function main(){
@@ -386,7 +379,14 @@ function main(){
         help
         ;;
     *)
-        run_and_check_status_func
+        pre_checking
+
+        until $(kubectl cluster-info &>/dev/null)
+        do
+            kube_config
+        done
+
+        helm_deploy 
         ;;
     esac
 }
