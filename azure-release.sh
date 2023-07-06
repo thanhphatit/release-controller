@@ -358,7 +358,7 @@ function helm_deploy(){
             STATUS_PID_UPGRADE_HELM=$?
 
             if [[ "${STATUS_PID_UPGRADE_HELM}" == "0" ]];then
-                docker_deploy_latest 2> /dev/null
+                docker_deploy_latest &>/dev/null
             fi
         fi
 
