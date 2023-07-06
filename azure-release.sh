@@ -249,7 +249,7 @@ function docker_deploy_latest(){
     docker login -u ${AZ_USER} -p ${AZ_PASSWORD} ${AZ_ACR_ACCOUNT_URL} 2> /dev/null
 
     if [[ ! $(docker images --format "{{.Repository}}:{{.Tag}}" | grep "${IMAGE_NAME}:${IMAGE_TAG_BUILD}") ]]; then
-        echo "[>][WARNING] ${IMAGE_NAME}:${IMAGE_TAG_BUILD} not found"
+        echo "[>][WARNING] Image ${IMAGE_NAME}:${IMAGE_TAG_BUILD} not found"
         docker pull ${AZ_ACR_ACCOUNT_URL}/${IMAGE_NAME}:${IMAGE_TAG_BUILD}
     fi
 
@@ -323,7 +323,7 @@ function helm_deploy(){
             helm upgrade ${HELM_RELEASE_NAME} ${HELM_PRIVATE_REPO_NAME}/${HELM_CHART_NAME} \
                 --reuse-values \
                 --namespace ${HELM_NAMESPACE_NAME} \
-                --set image.repository="${AWS_ECR_ACCOUNT_URL}/${IMAGE_NAME}" \
+                --set image.repository="${AZ_ACR_ACCOUNT_URL}/${IMAGE_NAME}" \
                 --set image.tag="${IMAGE_TAG_BUILD}" \
                 --set timestamp="${CURRENT_UNIXTIME}" 2> /dev/null
         else
@@ -332,7 +332,7 @@ function helm_deploy(){
                 --version ${HELM_VERSION} \
                 --reuse-values \
                 --namespace ${HELM_NAMESPACE_NAME} \
-                --set image.repository="${AWS_ECR_ACCOUNT_URL}/${IMAGE_NAME}" \
+                --set image.repository="${AZ_ACR_ACCOUNT_URL}/${IMAGE_NAME}" \
                 --set image.tag="${IMAGE_TAG_BUILD}" \
                 --set timestamp="${CURRENT_UNIXTIME}" 2> /dev/null
         fi
