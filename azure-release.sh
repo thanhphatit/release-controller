@@ -202,6 +202,8 @@ function change_var_with_stage(){
 }
 
 function pre_checking(){
+    check_var "SERVICE_NAME GIT_COMMIT_ID DOCKER_TAG DOCKER_URL K8S_DOWNLOAD_CONFIG_URL K8S_CONTEXT_UAT K8S_CONTEXT_VNPRD K8S_NS_DEV K8S_NS_UAT K8S_NS_DR K8S_NS_VNPRD"
+    pre_check_dependencies "helm kubectl docker"
     change_var_with_stage
     local RESULT_CHECK_PLUGIN_HELM_DIFF=$(check_plugin "helm plugin list" "diff")
     local RESULT_CHECK_PLUGIN_HELM_PUSH=$(check_plugin "helm plugin list" "cm-push")
@@ -350,8 +352,6 @@ function main(){
         help
         ;;
     *)
-        check_var "SERVICE_NAME GIT_COMMIT_ID DOCKER_TAG DOCKER_URL K8S_DOWNLOAD_CONFIG_URL K8S_CONTEXT_UAT K8S_CONTEXT_VNPRD K8S_NS_DEV K8S_NS_UAT K8S_NS_DR K8S_NS_VNPRD"
-        pre_check_dependencies "helm kubectl docker"
         pre_checking
         kube_config
         helm_deploy
