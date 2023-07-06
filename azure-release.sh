@@ -17,7 +17,7 @@ OPTION=${1:-k8s} ### Value is k8s or fa
 STAGE_SYNTAX_DEV="DEV"
 STAGE_SYNTAX_UAT="UAT"
 STAGE_SYNTAX_DR="DR"
-STAGE_SYNTAX_PROD="VNPRD"
+STAGE_SYNTAX_VNPRD="VNPRD"
 
 ### Used with echo have flag -e
 RLC="\033[1;31m"    ## Use redlight color
@@ -140,7 +140,7 @@ function check_stage_current(){
     local STAGE_DEV_USED=$(check_stage_used "${STAGE_SYNTAX_DEV}")
     local STAGE_UAT_USED=$(check_stage_used "${STAGE_SYNTAX_UAT}")
     local STAGE_DR_USED=$(check_stage_used "${STAGE_SYNTAX_DR}")
-    local STAGE_PROD_USED=$(check_stage_used "${STAGE_SYNTAX_PROD}")
+    local STAGE_VNPRD_USED=$(check_stage_used "${STAGE_SYNTAX_VNPRD}")
 
     if [[ ${STAGE_DEV_USED} == "true" ]];then
         STAGE_CURRENT="DEV"
@@ -154,8 +154,8 @@ function check_stage_current(){
         STAGE_CURRENT="DR"
     fi
 
-    if [[ ${STAGE_PROD_USED} == "true" ]];then
-        STAGE_CURRENT="PROD"
+    if [[ ${STAGE_VNPRD_USED} == "true" ]];then
+        STAGE_CURRENT="VNPRD"
     fi
 }
 
@@ -181,7 +181,7 @@ function change_var_with_stage(){
         K8S_NAMESPACE="${K8S_NS_DR}"
     fi
 
-    if [[ ${STAGE_CURRENT} == "PROD" ]];then
+    if [[ ${STAGE_CURRENT} == "VNPRD" ]];then
         K8S_CONTEXT="${K8S_CONTEXT_VNPRD}"
         K8S_NAMESPACE="${K8S_NS_VNPRD}"
     fi
@@ -225,6 +225,7 @@ function docker_deploy_latest(){
     local AZ_ACR_ACCOUNT_URL="${ACR_NAME}.azurecr.io"
     local IMAGE_NAME="${SERVICE_NAME}" 
     local IMAGE_TAG_BUILD="${DOCKER_TAG}"
+    local STAGE_CURRENT="$(echo "${STAGE_CURRENT}" | tr '[:upper:]' '[:lower:]')"
 
     check_var "STAGE_CURRENT IMAGE_NAME IMAGE_TAG_BUILD"
 
@@ -233,7 +234,7 @@ function docker_deploy_latest(){
     if [[ ! $(docker images --format "{{.Repository}}:{{.Tag}}" | grep "${IMAGE_NAME}:${IMAGE_TAG_BUILD}") ]]; then
         echo "[*][WARNING] ${IMAGE_NAME}:${IMAGE_TAG_BUILD} not found"
         docker pull ${AZ_ACR_ACCOUNT_URL}/${IMAGE_NAME}:${IMAGE_TAG_BUILD}
-
+        echo "Chao ${ENV_BUILD}"
         docker images --format "{{.Repository}}:{{.Tag}}"
         docker images -q ${IMAGE_NAME}:${IMAGE_TAG_BUILD}
     fi
