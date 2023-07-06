@@ -5,11 +5,8 @@
 ## Description:
 ##      Script to deploy release service azure to aks or fa
 
-#### GLOBAL VARIABLES
-
 #### SHELL SETTING
 set -o pipefail
-# set -e ### When you use -e it will export error when logic function fail, example: grep "yml" if yml not found
 
 #### VARIABLES
 OPTION=${1:-k8s} ### Value is k8s or fa
@@ -21,13 +18,6 @@ STAGE_SYNTAX_VNPRD="VNPRD"
 
 HELM_LIST_MAX_LIMIT="--max 2605"
 
-### Used with echo have flag -e
-RLC="\033[1;31m"    ## Use redlight color
-GC="\033[0;32m"     ## Use green color
-YC="\033[0;33m"     ## Use yellow color
-BC="\033[0;34m"     ## Use blue color
-EC="\033[0m"        ## End color with no color
-
 #### FUNCTIONS
 
 function check_var(){
@@ -35,7 +25,7 @@ function check_var(){
     
     for var in ${VAR_LIST[@]}; do
         if [[ -z "$(eval echo $(echo $`eval echo "${var}"`))" ]];then
-            echo -e "${YC}[CAUTIONS] Variable ${var} not found!"
+            echo "[CAUTIONS] Variable ${var} not found!"
             exit 1
         fi
     done
@@ -50,7 +40,7 @@ cat <<ABOUT
 * Author: DANG THANH PHAT                               *
 * Email: thanhphat@itblognote.com                       *
 * Blog: www.itblognote.com                              *
-* Version: 0.5                                          *
+* Version: 0.9                                          *
 * Purpose: Tools to release application to k8s or fa.   *
 *********************************************************
 
@@ -125,9 +115,9 @@ function download_file(){
     wait
 
     if [[ -f ${DOWN_FILE_EXPORT_NAME} ]];then
-        echo -e "${GC}[DOWNLOAD]: ${DOWN_FILE_EXPORT_NAME} SUCCESS ****"
+        echo "[DOWNLOAD]: ${DOWN_FILE_EXPORT_NAME} SUCCESS ****"
     else
-        echo -e "${RLC}[ERROR] not found download file!"
+        echo "[ERROR] not found download file!"
     fi
 }
 
@@ -319,7 +309,6 @@ function helm_deploy(){
     
     upgrade_helm(){
         echo "Upgrade with application version: ${HELM_VERSION}"
-        echo ""
         if [[ "${HELM_VERSION}" == "latest" || "${HELM_VERSION}" == "" ]];then
             helm upgrade ${HELM_RELEASE_NAME} ${HELM_PRIVATE_REPO_NAME}/${HELM_CHART_NAME} \
                 --reuse-values \
@@ -352,6 +341,7 @@ function helm_deploy(){
             echo "[+] CHECKING: not found Helm Release [${HELM_RELEASE_NAME}] namespace [${HELM_NAMESPACE_NAME}]"
             exit 1
         else
+            echo ""
             upgrade_helm &
             PID_UPGRADE_HELM=$!
             wait ${PID_UPGRADE_HELM}
