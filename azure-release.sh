@@ -234,7 +234,7 @@ function pre_checking(){
 }
 
 function kube_config(){
-    check_var "DOWN_USER DOWN_PASSWORD"
+    check_var "DOWN_USER DOWN_PASSWORD K8S_DOWNLOAD_CONFIG_URL K8S_CONTEXT"
     echo "Create ${HOME}/.kube"
     [ -d ${HOME}/.kube ] && rm -rf ${HOME}/.kube
     mkdir ${HOME}/.kube
