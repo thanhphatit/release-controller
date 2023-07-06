@@ -345,7 +345,8 @@ function helm_deploy(){
     }
 
     check_helm(){
-        helmReleaseName=$(helm list -n ${HELM_NAMESPACE_NAME} ${HELM_LIST_MAX_LIMIT} 2> /dev/null | awk '{print $1}' | grep -i ${HELM_RELEASE_NAME} | tr -d ' ' | head -n1)
+        helmReleaseName=$(helm list -n ${HELM_NAMESPACE_NAME} ${HELM_LIST_MAX_LIMIT} 2> /dev/null | awk '{print $1}' | grep -i ${HELM_RELEASE_NAME} | tr -d ' ' | head -n1) &
+        wait
         if [[ "${helmReleaseName}" == "${HELM_RELEASE_NAME}" ]];then
             upgrade_helm
         else
