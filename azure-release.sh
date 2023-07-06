@@ -337,6 +337,7 @@ function helm_deploy(){
         fi
     }
 
+    helm list -n ${HELM_NAMESPACE_NAME} ${HELM_LIST_MAX_LIMIT}
     check_helm(){
         local helmReleaseName=$(helm list -n ${HELM_NAMESPACE_NAME} ${HELM_LIST_MAX_LIMIT} 2> /dev/null | awk '{print $1}' | grep -i ${HELM_RELEASE_NAME} | tr -d ' ' | head -n1)
         
