@@ -230,7 +230,7 @@ function docker_deploy_latest(){
 
     docker login -u ${AZ_USER} -p ${AZ_PASSWORD} ${AZ_ACR_ACCOUNT_URL} 2> /dev/null
     docker images -q ${IMAGE_NAME}:${IMAGE_TAG_BUILD}
-    if [[ $(docker images --format "{{.Repository}}:{{.Tag}}" | grep "${IMAGE_NAME}:${IMAGE_TAG_BUILD}") ]]; then
+    if [[ ! $(docker images --format "{{.Repository}}:{{.Tag}}" | grep "${IMAGE_NAME}:${IMAGE_TAG_BUILD}") ]]; then
         echo "[*][WARNING] ${IMAGE_NAME}:${IMAGE_TAG_BUILD} not found"
         docker pull ${AZ_ACR_ACCOUNT_URL}/${IMAGE_NAME}:${IMAGE_TAG_BUILD}
     fi
