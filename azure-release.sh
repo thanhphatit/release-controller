@@ -192,19 +192,29 @@ function change_var_with_stage(){
 
     check_var "K8S_CONTEXT K8S_NAMESPACE"
 
-    echo -e "${GC}Show all variables..."
-    echo "[+] Git CommitID: ${GIT_COMMIT_ID}"
-    echo "[+] Docker Tag: ${DOCKER_TAG}"
-    echo "[+] Docker URL: ${DOCKER_URL}"
-    echo "[+] Stage: ${STAGE}"
-    echo "[+] K8S Context: ${K8S_CONTEXT}"
-    echo "[+] K8S Namespace: ${K8S_NAMESPACE}"
+    echo "*******************************"
+    echo "*        SHOW VARIABLES       *"
+    echo "*******************************"
+    echo ""
+    echo "[*] SERVICE_NAME: ${SERVICE_NAME}"
+    echo "[*] GIT_COMMIT_ID: ${GIT_COMMIT_ID}"
+    echo "[*] APP_BUILD_NUMBER: ${APP_BUILD_NUMBER}"
+    echo "[*] DOCKER_TAG: ${DOCKER_TAG}"
+    echo "[*] DOCKER_URL: ${DOCKER_URL}"
+    echo "[*] HELM_VERSION: ${HELM_VERSION}"
+    echo "[*] BUILD_MULTI_ENV: ${BUILD_MULTI_ENV}"
+    echo "[*] BUILD_ID: ${BUILD_ID}"
+    echo "[*] DEPLOY_TYPE: ${DEPLOY_TYPE}"
+    echo "[*] STAGE: ${STAGE}"
+    echo "[*] K8S_CONTEXT: ${K8S_CONTEXT}"
+    echo "[*] K8S_NAMESPACE: ${K8S_NAMESPACE}"
 }
 
 function pre_checking(){
     check_var "SERVICE_NAME GIT_COMMIT_ID DOCKER_TAG DOCKER_URL K8S_DOWNLOAD_CONFIG_URL K8S_CONTEXT_UAT K8S_CONTEXT_VNPRD K8S_NS_DEV K8S_NS_UAT K8S_NS_DR K8S_NS_VNPRD"
     pre_check_dependencies "helm kubectl docker"
     change_var_with_stage
+
     local RESULT_CHECK_PLUGIN_HELM_DIFF=$(check_plugin "helm plugin list" "diff")
     local RESULT_CHECK_PLUGIN_HELM_PUSH=$(check_plugin "helm plugin list" "cm-push")
 
