@@ -337,7 +337,6 @@ function helm_deploy(){
         fi
     }
 
-    helm list -n ${HELM_NAMESPACE_NAME} ${HELM_LIST_MAX_LIMIT} 2> /dev/null | awk '{print $1}' | grep -i ${HELM_RELEASE_NAME}
     check_helm(){
         # Get list helm release exists in specific Kubernetes Cluster
         LIST_HELM_RELEASE_K8S=$(mktemp /tmp/tempfile-list-helmreleases-$SERVICE_IDENTIFIER-XXXXXXXX)
@@ -364,7 +363,9 @@ function helm_deploy(){
         if [[ -f ${LIST_HELM_RELEASE_K8S} ]];then
             rm -f ${LIST_HELM_RELEASE_K8S}
         fi 
-    }    
+    }
+
+    check_helm    
 }
 
 #### START
