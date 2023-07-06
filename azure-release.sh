@@ -157,6 +157,7 @@ function check_stage_current(){
     if [[ ${STAGE_VNPRD_USED} == "true" ]];then
         STAGE_CURRENT="vnprd"
     fi
+    return 0
 }
 
 function change_var_with_stage(){
@@ -209,6 +210,7 @@ function change_var_with_stage(){
     echo "[*] K8S_CONTEXT: ${K8S_CONTEXT}"
     echo "[*] K8S_NAMESPACE: ${K8S_NAMESPACE}"
     echo ""
+    return 0
 }
 
 function pre_checking(){
@@ -226,6 +228,7 @@ function pre_checking(){
     if [[ "${RESULT_CHECK_PLUGIN_HELM_PUSH}" != "" ]];then
         helm plugin install https://github.com/chartmuseum/helm-push.git &>/dev/null
     fi
+    return 0
 }
 
 function kube_config(){
@@ -236,6 +239,7 @@ function kube_config(){
 
     download_file "${DOWN_USER}" "${DOWN_PASSWORD}" "${HOME}/.kube/config" "${K8S_DOWNLOAD_CONFIG_URL}"
     kubectl config use-context ${K8S_CONTEXT}
+    return 0
 }
 
 function docker_deploy_latest(){
@@ -254,6 +258,8 @@ function docker_deploy_latest(){
 
     docker tag ${AZ_ACR_ACCOUNT_URL}/${IMAGE_NAME}:${IMAGE_TAG_BUILD} ${AZ_ACR_ACCOUNT_URL}/${IMAGE_NAME}:${STAGE_CURRENT}.latest
     docker push ${AZ_ACR_ACCOUNT_URL}/${IMAGE_NAME}:${STAGE_CURRENT}.latest
+
+    return 0
 }
 
 function helm_deploy(){
@@ -348,6 +354,7 @@ function helm_deploy(){
     }    
 
     check_helm
+    return 0
 }
 #### START
 
@@ -363,7 +370,11 @@ function main(){
     *)
         pre_checking
         kube_config
-        helm_deploy
+        
+        if [[ ! helm_deploy ]];then
+            exit 1
+        fi
+        
         docker_deploy_latest
         ;;
     esac
