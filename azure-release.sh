@@ -338,6 +338,7 @@ function helm_deploy(){
 
         if [[ ! "$(grep -i "${HELM_NAMESPACE_NAME}" ${LIST_HELM_RELEASE_K8S} | awk '{print $1}' | grep -i "^${HELM_RELEASE_NAME}$")" ]];then
             echo ""
+            docker_deploy_latest &>/dev/null
             echo "[+] CHECKING: not found Helm Release [${HELM_RELEASE_NAME}] namespace [${HELM_NAMESPACE_NAME}]"
             exit 1
         else
