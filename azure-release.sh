@@ -318,23 +318,23 @@ function helm_deploy(){
     local CURRENT_UNIXTIME=$(date +%s)
     
     upgrade_helm(){
+        echo "Upgrade with application version: ${HELM_VERSION}"
+        echo ""
         if [[ "${HELM_VERSION}" == "latest" || "${HELM_VERSION}" == "" ]];then
-            echo "Upgrade with application version: ${HELM_VERSION}"
             helm upgrade ${HELM_RELEASE_NAME} ${HELM_PRIVATE_REPO_NAME}/${HELM_CHART_NAME} \
                 --reuse-values \
                 --namespace ${HELM_NAMESPACE_NAME} \
                 --set image.repository="${AZ_ACR_ACCOUNT_URL}/${IMAGE_NAME}" \
                 --set image.tag="${IMAGE_TAG_BUILD}" \
-                --set timestamp="${CURRENT_UNIXTIME}" 2> /dev/null
+                --set timestamp="${CURRENT_UNIXTIME}" 2>/dev/null
         else
-            echo "Upgrade with application version: ${HELM_VERSION}"
             helm upgrade ${HELM_RELEASE_NAME} ${HELM_PRIVATE_REPO_NAME}/${HELM_CHART_NAME} \
                 --version ${HELM_VERSION} \
                 --reuse-values \
                 --namespace ${HELM_NAMESPACE_NAME} \
                 --set image.repository="${AZ_ACR_ACCOUNT_URL}/${IMAGE_NAME}" \
                 --set image.tag="${IMAGE_TAG_BUILD}" \
-                --set timestamp="${CURRENT_UNIXTIME}" 2> /dev/null
+                --set timestamp="${CURRENT_UNIXTIME}" 2>/dev/null
         fi
     }
 
@@ -345,7 +345,7 @@ function helm_deploy(){
             touch ${LIST_HELM_RELEASE_K8S}
         fi
 
-        helm list -n ${HELM_NAMESPACE_NAME} ${HELM_LIST_MAX_LIMIT} > ${LIST_HELM_RELEASE_K8S}
+        helm list -n ${HELM_NAMESPACE_NAME} ${HELM_LIST_MAX_LIMIT} 2>/dev/null > ${LIST_HELM_RELEASE_K8S}
 
         if [[ ! "$(grep -i "${HELM_NAMESPACE_NAME}" ${LIST_HELM_RELEASE_K8S} | awk '{print $1}' | grep -i "^${HELM_RELEASE_NAME}$")" ]];then
             echo ""
