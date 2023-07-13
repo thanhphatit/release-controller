@@ -362,28 +362,29 @@ function helm_deploy(){
     check_helm    
 }
 
-function download_git_subpath(){
+function download_gitaz_folder(){
     check_var "DOWN_USER DOWN_PASSWORD AZ_ORGANIZATION CONFIG_PROJECT CONFIG_REPOS CONFIG_PATH"
 
     curl "https://${DOWN_USER}:${DOWN_PASSWORD}@dev.azure.com/${AZ_ORGANIZATION}/${CONFIG_PROJECT}/_apis/git/repositories/${CONFIG_REPOS}/items?scopePath=${CONFIG_PATH}&versionDescriptor%5Bversion%5D=master&resolveLfs=true&%24format=zip&api-version=6.0&download=true" -o config.zip &
     wait
 
-    unzip -jo config.zip
+    unzip -jo files.zip -d files
     sleep 3
-    rm config.zip
+    rm files.zip
     tree .
 }
 
 function change_name_config(){
     check_var "STAGE_CURRENT"
+    cd files
     local LIST_CHANGE=($(ls | grep "${STAGE_CURRENT}"))
     local NAME_CHANGE="none"
 
-    if [ -z != "${LIST_CHANGE}" ]
+    if [ ! -z "${LIST_CHANGE[0]}" ]
     then
         for i in "${LIST_CHANGE[@]}"
         do
-            if [[ "${i}" = *"-${STAGE_CURRENT}"* ]];then
+            if [[ "${i}" = *"${STAGE_CURRENT}"* ]];then
                 NAME_CHANGE=$(echo "${i}" | sed 's/-'${STAGE_CURRENT}'//')
                 cp -ra ${i} ${NAME_CHANGE}
             else
@@ -391,12 +392,20 @@ function change_name_config(){
                 cp -ra ${i} ${NAME_CHANGE}
             fi
         done
-        ls -la
+        ls -a
     else
         echo "[-] File config of ${STAGE_CURRENT} not found."
-        ls -la
-        exit 1
     fi
+}
+
+function fa_deploy(){
+    download_gitaz_folder &>/dev/null
+
+    change_name_config
+    
+    DEFINITION_NAME
+    GIT_COMMIT_ID
+
 }
 #### START
 
@@ -421,7 +430,8 @@ function main(){
         ;;
     "fa")
         pre_checking
-        download_git_subpath
+
+        fa_deploy
         ;;
     *)
         echo -n "Error: Something wrong"
