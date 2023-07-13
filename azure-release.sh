@@ -365,7 +365,7 @@ function helm_deploy(){
 function download_gitaz_folder(){
     check_var "DOWN_USER DOWN_PASSWORD AZ_ORGANIZATION CONFIG_PROJECT CONFIG_REPOS CONFIG_PATH"
 
-    curl "https://${DOWN_USER}:${DOWN_PASSWORD}@dev.azure.com/${AZ_ORGANIZATION}/${CONFIG_PROJECT}/_apis/git/repositories/${CONFIG_REPOS}/items?scopePath=${CONFIG_PATH}&versionDescriptor%5Bversion%5D=master&resolveLfs=true&%24format=zip&api-version=6.0&download=true" -o config.zip &>/dev/null
+    curl "https://${DOWN_USER}:${DOWN_PASSWORD}@dev.azure.com/${AZ_ORGANIZATION}/${CONFIG_PROJECT}/_apis/git/repositories/${CONFIG_REPOS}/items?scopePath=${CONFIG_PATH}&versionDescriptor%5Bversion%5D=master&resolveLfs=true&%24format=zip&api-version=6.0&download=true" -o files.zip &>/dev/null
     wait
 
     unzip -jo files.zip -d files &
