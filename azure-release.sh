@@ -362,6 +362,42 @@ function helm_deploy(){
     check_helm    
 }
 
+function download_git_subpath(){
+    check_var "DOWN_USER DOWN_PASSWORD AZ_ORGANIZATION CONFIG_PROJECT CONFIG_REPOS CONFIG_PATH"
+
+    curl "https://${DOWN_USER}:${DOWN_PASSWORD}@dev.azure.com/${AZ_ORGANIZATION}/${CONFIG_PROJECT}/_apis/git/repositories/${CONFIG_REPOS}/items?scopePath=${CONFIG_PATH}&versionDescriptor%5Bversion%5D=master&resolveLfs=true&%24format=zip&api-version=6.0&download=true" -o config.zip &
+    wait
+
+    unzip -jo config.zip
+    sleep 3
+    rm config.zip
+    tree .
+}
+
+function change_name_config(){
+    check_var "STAGE_CURRENT"
+    local LIST_CHANGE=($(ls | grep "${STAGE_CURRENT}"))
+    local NAME_CHANGE="none"
+
+    if [ -z != "${LIST_CHANGE}" ]
+    then
+        for i in "${LIST_CHANGE[@]}"
+        do
+            if [[ "${i}" = *"-${STAGE_CURRENT}"* ]];then
+                NAME_CHANGE=$(echo "${i}" | sed 's/-'${STAGE_CURRENT}'//')
+                cp -ra ${i} ${NAME_CHANGE}
+            else
+                NAME_CHANGE=$(echo "${i}" | sed 's/.'${STAGE_CURRENT}'//')
+                cp -ra ${i} ${NAME_CHANGE}
+            fi
+        done
+        ls -la
+    else
+        echo "[-] File config of ${STAGE_CURRENT} not found."
+        ls -la
+        exit 1
+    fi
+}
 #### START
 
 function main(){
@@ -373,7 +409,7 @@ function main(){
     "-h" | "--help")
         help
         ;;
-    *)
+    "k8s")
         pre_checking
 
         until $(kubectl cluster-info &>/dev/null)
@@ -382,6 +418,14 @@ function main(){
         done
 
         helm_deploy 
+        ;;
+    "fa")
+        pre_checking
+        download_git_subpath
+        ;;
+    *)
+        echo -n "Error: Something wrong"
+        help
         ;;
     esac
 }
