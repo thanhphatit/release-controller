@@ -365,11 +365,12 @@ function helm_deploy(){
 function download_gitaz_folder(){
     check_var "DOWN_USER DOWN_PASSWORD AZ_ORGANIZATION CONFIG_PROJECT CONFIG_REPOS CONFIG_PATH"
 
-    curl "https://${DOWN_USER}:${DOWN_PASSWORD}@dev.azure.com/${AZ_ORGANIZATION}/${CONFIG_PROJECT}/_apis/git/repositories/${CONFIG_REPOS}/items?scopePath=${CONFIG_PATH}&versionDescriptor%5Bversion%5D=master&resolveLfs=true&%24format=zip&api-version=6.0&download=true" -o config.zip &
+    curl "https://${DOWN_USER}:${DOWN_PASSWORD}@dev.azure.com/${AZ_ORGANIZATION}/${CONFIG_PROJECT}/_apis/git/repositories/${CONFIG_REPOS}/items?scopePath=${CONFIG_PATH}&versionDescriptor%5Bversion%5D=master&resolveLfs=true&%24format=zip&api-version=6.0&download=true" -o config.zip &>/dev/null
     wait
 
-    unzip -jo files.zip -d files
-    sleep 3
+    unzip -jo files.zip -d files &
+    wait
+
     rm files.zip
     tree .
 }
@@ -399,12 +400,11 @@ function change_name_config(){
 }
 
 function fa_deploy(){
-    download_gitaz_folder &>/dev/null
-
+    download_gitaz_folder
     change_name_config
     
-    DEFINITION_NAME
-    GIT_COMMIT_ID
+    # DEFINITION_NAME
+    # GIT_COMMIT_ID
 
 }
 #### START
