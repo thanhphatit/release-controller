@@ -446,7 +446,12 @@ function fa_check_token_upload(){
                        --header 'Content-Type: application/zip' \
                        --data-binary "@${SERVICE_NAME}.zip" 2>/dev/null) 
 
-    echo ${STATUS_CODE}
+    if [[ "${STATUS_CODE}" == "200" ]];then
+        echo "[UPLOAD] [${FA_NAME}] SUCCESS"
+    else
+        echo "[ERROR] [${FA_NAME}] WITH STATUS CODE: [${STATUS_CODE}]"
+        exit 1
+    fi 
 }
 
 function fa_deploy(){
