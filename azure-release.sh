@@ -185,6 +185,7 @@ function change_var_with_stage(){
     check_stage_current
 
     check_var "STAGE_CURRENT"
+    export SOURCE_CODE=${SERVICE_NAME}.zip
 
     if [[ ${STAGE_CURRENT} == "dev" ]];then
         export K8S_CONTEXT="${K8S_CONTEXT_DEV}"
@@ -208,8 +209,9 @@ function change_var_with_stage(){
 
     if [[ ${BUILD_MULTI_ENV} != "false" || ${BUILD_MULTI_ENV} != "False" ]];then
         export DOCKER_TAG="${STAGE_CURRENT}.${DOCKER_TAG}"
+        export SOURCE_CODE="${SERVICE_NAME}-${STAGE_CURRENT}.zip"
     fi
-
+    
     check_var "K8S_CONTEXT K8S_NAMESPACE"
     echo ""
     echo "*******************************"
@@ -412,10 +414,10 @@ function change_name_config(){
                 cp -ra ${i} ${NAME_CHANGE}
             fi
         done
-        if [[ ! $(command -v ${tools}) ]];then
-            ls -a
-        else
+        if [[ $(command -v tree) ]];then
             tree .
+        else
+            ls -a
         fi
     else
         echo "[-] File config of ${STAGE_CURRENT} not found."
@@ -448,7 +450,7 @@ function fa_check_token_upload(){
     STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" --fail -v --location --request POST "https://${FA_NAME}.scm.azurewebsites.net/api/zipdeploy" \
                        --header "Authorization: Basic ${FA_TOKEN}" \
                        --header 'Content-Type: application/zip' \
-                       --data-binary "@${SERVICE_NAME}.zip" 2>/dev/null) 
+                       --data-binary "@${SOURCE_CODE}" 2>/dev/null) 
 
     if [[ "${STATUS_CODE}" == "200" ]];then
         echo "##[section][UPLOAD] [${FA_NAME}] SUCCESS"
@@ -474,7 +476,7 @@ function fa_deploy(){
     ## Run command
     run_cmd
 
-    unzip -l ./${SERVICE_NAME}.zip | less
+    unzip -l ./${SOURCE_CODE} | less
     
     echo ""
     fa_check_token_upload
