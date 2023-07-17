@@ -428,13 +428,15 @@ function run_cmd(){
             CMD=$(echo "${i}" | awk -F'=' '{print $2}')
             echo "${CMD}"
         done
-        ls -a
     else
         echo "[-] Command not found."
     fi
 }
 
 function fa_deploy(){
+    echo "${RUN_CMD_01}"
+    echo "${RUN_CMD_02}"
+    env | grep "RUN_CMD"
     check_var "AZ_DEVOPS_USER AZ_DEVOPS_PASSWORD AZ_ORGANIZATION CONFIG_PROJECT CONFIG_REPOS CONFIG_PATH CONFIG_REPO_BRANCH"
     local FILE_EXPORT_NAME='files.zip'
     
@@ -442,13 +444,10 @@ function fa_deploy(){
 
     unzip -jo ${FILE_EXPORT_NAME} -d ${DEFINITION_NAME}/${GIT_COMMIT_ID} &>/dev/null
     wait
-
-    rm ${FILE_EXPORT_NAME}
     
     cd ${DEFINITION_NAME}/${GIT_COMMIT_ID}
     change_name_config
 
-    ls -la
     ## Run command
     run_cmd
 }
