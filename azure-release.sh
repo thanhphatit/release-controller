@@ -419,7 +419,7 @@ function change_name_config(){
 }
 
 function run_cmd(){
-    local CMD_LIST=($(env | grep "RUN_CMD" | awk -F'=' '{print $1}'))
+    local CMD_LIST=($(env | grep "RUN_CMD" | awk -F'=' '{print $1}' | sort -t_ -k2 -n))
     if [ ${#CMD_LIST[@]} -gt 0 ]
     then
         for CMD in "${CMD_LIST[@]}"; do
