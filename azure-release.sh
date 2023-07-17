@@ -434,9 +434,6 @@ function run_cmd(){
 }
 
 function fa_deploy(){
-    echo "${RUN_CMD_01}"
-    echo "${RUN_CMD_02}"
-    env | grep "RUN_CMD"
     check_var "AZ_DEVOPS_USER AZ_DEVOPS_PASSWORD AZ_ORGANIZATION CONFIG_PROJECT CONFIG_REPOS CONFIG_PATH CONFIG_REPO_BRANCH"
     local FILE_EXPORT_NAME='files.zip'
     
