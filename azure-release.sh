@@ -433,6 +433,26 @@ function run_cmd(){
     fi
 }
 
+get_env_variables_with_prefix() {
+  local prefix="$1"
+  local variables=()  
+
+  while IFS= read -r -d '' var; do
+    variables+=("$var")
+  done < <(printenv | grep -z "^${prefix}")
+
+  echo "${variables[@]}"
+}
+
+prefix="RUN_CMD"
+IFS=$'\n' env_variables=($(get_env_variables_with_prefix "$prefix"))
+
+for var in "${env_variables[@]}"; do
+  var_name=$(echo "$var" | cut -d "=" -f1)
+  var_value=$(echo "$var" | cut -d "=" -f2-)
+  echo "Biến $var_name có giá trị: $var_value"
+done
+
 function fa_deploy(){
     echo "${RUN_CMD_01}"
     echo "${RUN_CMD_02}"
