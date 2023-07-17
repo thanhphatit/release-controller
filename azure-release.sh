@@ -431,6 +431,22 @@ function run_cmd(){
     fi
 }
 
+function fa_check_token_upload(){
+    local DECODE=$(echo -n "${FA_PASSWORD}" | base64 --decode)
+    if [[ $(echo ${DECODE} | grep "${FA_NAME}") ]];then
+        FA_TOKEN="${FA_PASSWORD}"
+        echo "[+] You importing token Funciton App"
+    else
+        FA_TOKEN="$(echo -n '$'"${FA_NAME}:${FA_PASSWORD}" | base64 -w 0)"
+        echo "[+] You importing password Funciton App"
+    fi
+
+    curl --fail -v --location --request POST "https://${FA_NAME}.scm.azurewebsites.net/api/zipdeploy" \
+         --header "Authorization: Basic ${FA_TOKEN}" \
+         --header 'Content-Type: application/zip' \
+         --data-binary "${SERVICE_NAME}.zip"
+}
+
 function fa_deploy(){
     check_var "AZ_DEVOPS_USER AZ_DEVOPS_PASSWORD AZ_ORGANIZATION CONFIG_PROJECT CONFIG_REPOS CONFIG_PATH CONFIG_REPO_BRANCH"
     local FILE_EXPORT_NAME='files.zip'
@@ -448,6 +464,8 @@ function fa_deploy(){
     run_cmd
 
     unzip -l ./${SERVICE_NAME}.zip | less
+
+    fa_check_token_upload
 }
 
         
