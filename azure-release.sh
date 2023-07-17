@@ -444,7 +444,7 @@ function fa_check_token_upload(){
     STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" --fail -v --location --request POST "https://${FA_NAME}.scm.azurewebsites.net/api/zipdeploy" \
                        --header "Authorization: Basic ${FA_TOKEN}" \
                        --header 'Content-Type: application/zip' \
-                       --data-binary "@${SERVICE_NAME}.zip") 
+                       --data-binary "@${SERVICE_NAME}.zip" 2>/dev/null) 
 
     echo ${STATUS_CODE}
 }
