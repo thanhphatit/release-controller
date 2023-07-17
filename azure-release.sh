@@ -471,7 +471,8 @@ function fa_deploy(){
     run_cmd
 
     unzip -l ./${SERVICE_NAME}.zip | less
-
+    
+    echo ""
     fa_check_token_upload
 }
 
