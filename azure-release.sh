@@ -444,7 +444,7 @@ function fa_check_token_upload(){
     curl --fail -v --location --request POST "https://${FA_NAME}.scm.azurewebsites.net/api/zipdeploy" \
          --header "Authorization: Basic ${FA_TOKEN}" \
          --header 'Content-Type: application/zip' \
-         --data-binary "${SERVICE_NAME}.zip"
+         --data-binary "@${SERVICE_NAME}.zip"
 }
 
 function fa_deploy(){
