@@ -425,8 +425,8 @@ function run_cmd(){
     then
         for i in "${CMD_LIST[@]}"
         do
-            CMD=$(echo "${i}" | awk -F'=' '{print $2}')
-            echo "${CMD}"
+            CMD=$(echo "${i}" | awk -F'=' '{print $1}')
+            echo "${${CMD}}"
         done
     else
         echo "[-] Command not found."
