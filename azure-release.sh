@@ -451,6 +451,29 @@ function fa_deploy(){
     ## Run command
     run_cmd
 }
+
+get_env_variables_with_prefix() {
+    local prefix="$1"
+    local variables=()  
+
+    while IFS= read -r -d '' var; do
+        variables+=("$var")
+    done < <(printenv | grep -z "^${prefix}")
+
+    echo "${variables[@]}"
+}
+
+function run_demo(){
+    prefix="RUN_CMD"
+    IFS=$'\n' env_variables=($(get_env_variables_with_prefix "$prefix"))
+
+    for var in "${env_variables[@]}"; do
+        var_name=$(echo "$var" | cut -d "=" -f1)
+        var_value=$(echo "$var" | cut -d "=" -f2-)
+        echo "Biến $var_name có giá trị: $var_value"
+    done
+}
+        
 #### START
 
 function main(){
@@ -474,27 +497,9 @@ function main(){
         ;;
     "fa")
         pre_checking
-
+        run_demo
         # fa_deploy
-        get_env_variables_with_prefix() {
-            local prefix="$1"
-            local variables=()  
-
-            while IFS= read -r -d '' var; do
-                variables+=("$var")
-            done < <(printenv | grep -z "^${prefix}")
-
-            echo "${variables[@]}"
-        }
-
-        prefix="RUN_CMD"
-        IFS=$'\n' env_variables=($(get_env_variables_with_prefix "$prefix"))
-
-        for var in "${env_variables[@]}"; do
-        var_name=$(echo "$var" | cut -d "=" -f1)
-        var_value=$(echo "$var" | cut -d "=" -f2-)
-        echo "Biến $var_name có giá trị: $var_value"
-        done
+        
         ;;
     *)
         echo -n "Error: Something wrong"
