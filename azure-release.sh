@@ -426,7 +426,7 @@ function run_cmd(){
             CMD_NAME="${CMD_VAR%%=*}"
             CMD_VALUE="${!CMD_NAME}"
             
-            echo "${CMD_VALUE}"
+            eval $(echo "${CMD_VALUE}")
         done
     else
         echo "[-] Command not found."
