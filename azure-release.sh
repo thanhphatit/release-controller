@@ -132,10 +132,10 @@ function download_gitaz(){
     wait
 
     if [[ -f ${EXPORT_NAME} ]];then
-        echo "[DOWNLOAD]: ${EXPORT_NAME} SUCCESS ****"
+        echo "##[section][DOWNLOAD]: ${EXPORT_NAME} SUCCESS ****"
         ls -l
     else
-        echo "[ERROR]: ${EXPORT_NAME} NOT FOUND ****"
+        echo "##[error][ERROR]: ${EXPORT_NAME} NOT FOUND ****"
         exit 1
     fi
 }
@@ -441,10 +441,10 @@ function fa_check_token_upload(){
     local DECODE=$(echo -n "${FA_PASSWORD}" | base64 --decode)
     if [[ $(echo ${DECODE} | grep "${FA_NAME}") ]];then
         FA_TOKEN="${FA_PASSWORD}"
-        echo "[+] You importing token Funciton App"
+        echo "##[section][+] You importing token Funciton App"
     else
         FA_TOKEN="$(echo -n '$'"${FA_NAME}:${FA_PASSWORD}" | base64 -w 0)"
-        echo "[+] You importing password Funciton App"
+        echo "##[section][+] You importing password Funciton App"
     fi
 
     STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" --fail -v --location --request POST "https://${FA_NAME}.scm.azurewebsites.net/api/zipdeploy" \
@@ -453,9 +453,15 @@ function fa_check_token_upload(){
                        --data-binary "@${SOURCE_CODE}" 2>/dev/null) 
 
     if [[ "${STATUS_CODE}" == "200" ]];then
-        echo "##[section][UPLOAD] [${FA_NAME}] SUCCESS"
+        echo "*********************************************"
+        echo "##[section][UPLOAD] [${FA_NAME}] SUCCESS    *"
+        echo "*********************************************"
+        echo ""
     else
-        echo "##[error][UPLOAD] [${FA_NAME}] WITH STATUS CODE ERROR: [${STATUS_CODE}]"
+        echo "**********************************************************************************"
+        echo "##[error][UPLOAD] [${FA_NAME}] WITH STATUS CODE ERROR: [${STATUS_CODE}]          *"
+        echo "**********************************************************************************"
+        echo ""
         exit 1
     fi 
 }
