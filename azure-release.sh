@@ -424,7 +424,7 @@ function run_cmd(){
     then
         for CMD in "${CMD_LIST[@]}"; do
             local RUN_CMD="${!CMD}"
-            echo "${RUN_CMD}"
+            ${RUN_CMD}
         done
     else
         echo "[-] Command not found."
@@ -440,11 +440,14 @@ function fa_deploy(){
     unzip -jo ${FILE_EXPORT_NAME} -d ${DEFINITION_NAME}/${GIT_COMMIT_ID} &>/dev/null
     wait
     
+    ## Change name config file
     cd ${DEFINITION_NAME}/${GIT_COMMIT_ID}
     change_name_config
 
     ## Run command
     run_cmd
+
+    unzip -l ./${SERVICE_NAME}.zip | less
 }
 
         
