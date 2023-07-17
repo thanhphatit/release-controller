@@ -11,10 +11,11 @@ set -o pipefail
 #### VARIABLES
 OPTION=${1:-k8s} ### Value is k8s or fa
 
-STAGE_SYNTAX_DEV="DEV"
-STAGE_SYNTAX_UAT="UAT"
-STAGE_SYNTAX_DR="DR"
-STAGE_SYNTAX_VNPRD="VNPRD"
+STAGE_SYNTAX_DEV=${STAGE_SYNTAX_DEV:-DEV}
+STAGE_SYNTAX_STG=${STAGE_SYNTAX_STG:-STG}
+STAGE_SYNTAX_UAT=${STAGE_SYNTAX_UAT:-UAT}
+STAGE_SYNTAX_PRD=${STAGE_SYNTAX_PRD:-VNPRD}
+STAGE_SYNTAX_DR=${STAGE_SYNTAX_DR:-DR}
 
 HELM_LIST_MAX_LIMIT="--max 2605"
 
@@ -31,38 +32,6 @@ function check_var(){
     done
 
     #### Example: check_var "DEVOPS THANHPHATIT"
-}
-
-function about(){
-cat <<ABOUT
-
-*********************************************************
-* Author: DANG THANH PHAT                               *
-* Email: thanhphat@itblognote.com                       *
-* Blog: www.itblognote.com                              *
-* Version: 0.9                                          *
-* Purpose: Tools to release application to k8s or fa.   *
-*********************************************************
-
-Use --help or -h to check syntax, please !
-
-ABOUT
-    exit 1
-}
-
-function help(){
-cat <<HELP
-
-Usage: azure-release [options...]
-
-[*] OPTIONS:
-    -h, --help            Show help
-    -v, --version         Show info and version
-    k8s                   (This is default value) - Start deploy application to k8s
-    fa                    Start deploy functions app to Azure 
-
-HELP
-    exit 1
 }
 
 function check_plugin(){
@@ -86,7 +55,39 @@ ALERTS
     #### Example: check_plugin "helm plugin list" "cm-push diff s3" 
 }
 
-function pre_check_dependencies(){
+function about(){
+cat <<ABOUT
+
+*********************************************************
+* Author: DANG THANH PHAT                               *
+* Email: thanhphat@itblognote.com                       *
+* Blog: www.itblognote.com                              *
+* Version: 1.2                                          *
+* Purpose: Release & deploy application to K8S or FA.   *
+*********************************************************
+
+Use --help or -h to check syntax, please !
+
+ABOUT
+    exit 1
+}
+
+function help(){
+cat <<HELP
+
+Usage: azure-release [options...]
+
+[*] OPTIONS:
+    -h, --help            Show help
+    -v, --version         Show info and version
+    k8s                   (This is default value) - Start deploy application to k8s
+    fa                    Start deploy functions app to Azure 
+
+HELP
+    exit 1
+}
+
+function check_dependencies(){
     ## All tools used in this script
     local TOOLS_LIST=(${1})
 
@@ -102,40 +103,67 @@ ALERTS
         fi
     done
 
-    #### Example: pre_check_dependencies "helm" 
+    #### Example: check_dependencies "helm" 
 }
 
-function download_file(){
-    local DOWN_USER=${1}
-    local DOWN_PASSWORD=${2}
-    local DOWN_FILE_EXPORT_NAME=${3}
-    local DOWN_URL=${4}
+function download_gitaz(){
+    ## Function use to download file in git on azure devops
 
-    curl -u ${DOWN_USER}:${DOWN_PASSWORD} -o ${DOWN_FILE_EXPORT_NAME} ${DOWN_URL} &
+    local METHOD=${1:-file} ## Method to know download: file or folder
+    local USER=${2}
+    local PASSWORD=${3}
+    local ORGANIZATION=${4}
+    local PROJECT=${5}
+    local REPOSITORIES=${6}
+    local ITEM_PATH=${7}
+    local BRANCH=${8}
+    local EXPORT_NAME=${9}
+    local URL=""
+
+    check_var "USER PASSWORD ORGANIZATION PROJECT REPOSITORIES ITEM_PATH BRANCH EXPORT_NAME"
+
+    if [[ ${METHOD} == "file" ]];then
+        URL="curl --fail https://${USER}:${PASSWORD}@dev.azure.com/${ORGANIZATION}/${PROJECT}/_apis/git/repositories/${REPOSITORIES}/Items?path=${ITEM_PATH}&version=${BRANCH}&download=true -o ${EXPORT_NAME}"
+    else
+        URL="curl --fail https://${USER}:${PASSWORD}@dev.azure.com/${ORGANIZATION}/${PROJECT}/_apis/git/repositories/${REPOSITORIES}/items?scopePath=${ITEM_PATH}&versionDescriptor%5Bversion%5D=${BRANCH}&resolveLfs=true&%24format=zip&api-version=6.0&download=true -o ${EXPORT_NAME}"
+    fi
+
+    ${URL} &>/dev/null &
     wait
 
-    if [[ -f ${DOWN_FILE_EXPORT_NAME} ]];then
-        echo "[DOWNLOAD]: ${DOWN_FILE_EXPORT_NAME} SUCCESS ****"
+    if [[ -f ${EXPORT_NAME} ]];then
+        echo "[DOWNLOAD]: ${EXPORT_NAME} SUCCESS ****"
+        ls -l
     else
-        echo "[ERROR] not found download file!"
+        echo "[ERROR]: ${EXPORT_NAME} NOT FOUND ****"
+        exit 1
     fi
 }
 
 function check_stage_used(){
-    local STAGE_LOW="$(echo "${1}" | tr '[:upper:]' '[:lower:]')"
-    if [[ $(echo "${STAGE}" | grep "${STAGE_LOW}") ]];then
+    check_var "STAGE"
+    ### Get stage syntax to change to lower and check with stage current
+    local STAGE_LOWER="$(echo "${1}" | tr '[:upper:]' '[:lower:]')"
+    if [[ $(echo "${STAGE}" | grep "${STAGE_LOWER}") ]];then
         echo "true"
     fi
 }
 
 function check_stage_current(){
+    check_var "STAGE_SYNTAX_DEV STAGE_SYNTAX_STG STAGE_SYNTAX_UAT STAGE_SYNTAX_DR STAGE_SYNTAX_PRD"
+    
     local STAGE_DEV_USED=$(check_stage_used "${STAGE_SYNTAX_DEV}")
+    local STAGE_STG_USED=$(check_stage_used "${STAGE_SYNTAX_STG}")
     local STAGE_UAT_USED=$(check_stage_used "${STAGE_SYNTAX_UAT}")
     local STAGE_DR_USED=$(check_stage_used "${STAGE_SYNTAX_DR}")
-    local STAGE_VNPRD_USED=$(check_stage_used "${STAGE_SYNTAX_VNPRD}")
+    local STAGE_PRD_USED=$(check_stage_used "${STAGE_SYNTAX_PRD}")
 
     if [[ ${STAGE_DEV_USED} == "true" ]];then
         STAGE_CURRENT="dev"
+    fi
+
+    if [[ ${STAGE_STG_USED} == "true" ]];then
+        STAGE_CURRENT="stg"
     fi
 
     if [[ ${STAGE_UAT_USED} == "true" ]];then
@@ -146,14 +174,16 @@ function check_stage_current(){
         STAGE_CURRENT="dr"
     fi
 
-    if [[ ${STAGE_VNPRD_USED} == "true" ]];then
+    if [[ ${STAGE_PRD_USED} == "true" ]];then
         STAGE_CURRENT="vnprd"
     fi
+
     return 0
 }
 
 function change_var_with_stage(){
     check_stage_current
+
     check_var "STAGE_CURRENT"
 
     if [[ ${STAGE_CURRENT} == "dev" ]];then
@@ -203,7 +233,9 @@ function change_var_with_stage(){
 
 function pre_checking(){
     check_var "SERVICE_NAME GIT_COMMIT_ID DOCKER_TAG DOCKER_URL K8S_DOWNLOAD_CONFIG_URL K8S_CONTEXT_UAT K8S_CONTEXT_VNPRD K8S_NS_DEV K8S_NS_UAT K8S_NS_DR K8S_NS_VNPRD"
-    pre_check_dependencies "helm kubectl docker"
+    
+    check_dependencies "helm kubectl docker"
+    
     change_var_with_stage
 
     local RESULT_CHECK_PLUGIN_HELM_DIFF=$(check_plugin "helm plugin list" "diff")
@@ -219,13 +251,13 @@ function pre_checking(){
 }
 
 function kube_config(){
-    check_var "DOWN_USER DOWN_PASSWORD K8S_DOWNLOAD_CONFIG_URL K8S_CONTEXT"
+    check_var "AZ_DEVOPS_USER AZ_DEVOPS_PASSWORD AZ_ORGANIZATION K8S_CONFIG_PROJECT K8S_CONFIG_REPO K8S_CONFIG_PATH K8S_CONFIG_BRANCH K8S_CONTEXT"
 
     echo "Create ${HOME}/.kube"
     [ -d ${HOME}/.kube ] && rm -rf ${HOME}/.kube
     mkdir ${HOME}/.kube
-
-    download_file "${DOWN_USER}" "${DOWN_PASSWORD}" "${HOME}/.kube/config" "${K8S_DOWNLOAD_CONFIG_URL}"
+    
+    download_gitaz "file" "${AZ_DEVOPS_USER}" "${AZ_DEVOPS_PASSWORD}" "${AZ_ORGANIZATION}" "${K8S_CONFIG_PROJECT}" "${K8S_CONFIG_REPO}" "${K8S_CONFIG_PATH}" "${K8S_CONFIG_BRANCH}" "${HOME}/.kube/config"
     kubectl config use-context ${K8S_CONTEXT}
 }
 
@@ -362,22 +394,9 @@ function helm_deploy(){
     check_helm    
 }
 
-function download_gitaz_folder(){
-    check_var "DOWN_USER DOWN_PASSWORD AZ_ORGANIZATION CONFIG_PROJECT CONFIG_REPOS CONFIG_PATH"
-
-    curl "https://${DOWN_USER}:${DOWN_PASSWORD}@dev.azure.com/${AZ_ORGANIZATION}/${CONFIG_PROJECT}/_apis/git/repositories/${CONFIG_REPOS}/items?scopePath=${CONFIG_PATH}&versionDescriptor%5Bversion%5D=master&resolveLfs=true&%24format=zip&api-version=6.0&download=true" -o files.zip &>/dev/null
-    wait
-
-    unzip -jo files.zip -d files &
-    wait
-
-    rm files.zip
-    tree .
-}
-
 function change_name_config(){
     check_var "STAGE_CURRENT"
-    cd files
+
     local LIST_CHANGE=($(ls | grep "${STAGE_CURRENT}"))
     local NAME_CHANGE="none"
 
@@ -399,13 +418,39 @@ function change_name_config(){
     fi
 }
 
-function fa_deploy(){
-    download_gitaz_folder
-    change_name_config
-    
-    # DEFINITION_NAME
-    # GIT_COMMIT_ID
+function run_cmd(){
+    local CMD_LIST=($(env | grep "RUN_CMD"))
 
+    if [ ! -z "${CMD_LIST[0]}" ]
+    then
+        for i in "${CMD_LIST[@]}"
+        do
+            CMD=$(echo "${i}" | awk -F'=' '{print $2}')
+            echo "${CMD}"
+        done
+        ls -a
+    else
+        echo "[-] Command not found."
+    fi
+}
+
+function fa_deploy(){
+    check_var "AZ_DEVOPS_USER AZ_DEVOPS_PASSWORD AZ_ORGANIZATION CONFIG_PROJECT CONFIG_REPOS CONFIG_PATH CONFIG_REPO_BRANCH FILE_EXPORT_NAME"
+    local FILE_EXPORT_NAME='files.zip'
+    
+    download_gitaz "folder" "${AZ_DEVOPS_USER}" "${AZ_DEVOPS_PASSWORD}" "${AZ_ORGANIZATION}" "${CONFIG_PROJECT}" "${CONFIG_REPOS}" "${CONFIG_PATH}" "${CONFIG_REPO_BRANCH}" "${FILE_EXPORT_NAME}"
+
+    unzip -jo ${FILE_EXPORT_NAME} -d ${DEFINITION_NAME}/${GIT_COMMIT_ID} &>/dev/null
+    wait
+
+    rm ${FILE_EXPORT_NAME}
+    
+    cd ${DEFINITION_NAME}/${GIT_COMMIT_ID}
+    change_name_config
+
+    ls -la
+    ## Run command
+    run_cmd
 }
 #### START
 
