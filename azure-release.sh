@@ -418,15 +418,25 @@ function change_name_config(){
     fi
 }
 
-function run_cmd(){
-    local CMD_LIST=($(env | grep "RUN_CMD"))
-    if [ ${#CMD_LIST[@]} -gt 0 ]
-    then
-        for CMD_VAR in "${CMD_LIST[@]}"; do
-            CMD_NAME="${CMD_VAR%%=*}"
-            CMD_VALUE="${!CMD_NAME}"
+# function run_cmd(){
+#     local CMD_LIST=($(env | grep "RUN_CMD"))
+#     if [ ${#CMD_LIST[@]} -gt 0 ]
+#     then
+#         for CMD_VAR in "${CMD_LIST[@]}"; do
+#             CMD_NAME="${CMD_VAR%%=*}"
+#             CMD_VALUE="${!CMD_NAME}"
             
-            eval "${CMD_VALUE}"
+#             eval "${CMD_VALUE}"
+#         done
+#     else
+#         echo "[-] Command not found."
+#     fi
+# }
+function run_cmd(){
+    if [ ${#CMD_LIST[@]} -gt 0 ]; then
+        for CMD in "${CMD_LIST[@]}"; do
+            # Thực thi câu lệnh trong mảng
+            echo "$CMD"
         done
     else
         echo "[-] Command not found."
