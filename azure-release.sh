@@ -420,13 +420,13 @@ function change_name_config(){
 
 function run_cmd(){
     local CMD_LIST=($(env | grep "RUN_CMD"))
-
-    if [ ! -z "${CMD_LIST[0]}" ]
+    if [ ${#CMD_LIST[@]} -gt 0 ]
     then
-        for i in "${CMD_LIST[@]}"
-        do
-            CMD="$(echo "${i}" | awk -F'=' '{print $1}')"
-            echo "${CMD}"
+        for CMD_VAR in "${CMD_LIST[@]}"; do
+            CMD_NAME="${CMD_VAR%%=*}"
+            CMD_VALUE="${!CMD_NAME}"
+            
+            echo "${CMD_VALUE}"
         done
     else
         echo "[-] Command not found."
@@ -452,27 +452,6 @@ function fa_deploy(){
     run_cmd
 }
 
-get_env_variables_with_prefix() {
-    local prefix="$1"
-    local variables=()  
-
-    while IFS= read -r -d '' var; do
-        variables+=("$var")
-    done < <(printenv | grep -z "^${prefix}")
-
-    echo "${variables[@]}"
-}
-
-function run_demo(){
-    prefix="RUN_CMD"
-    IFS=$'\n' env_variables=($(get_env_variables_with_prefix "$prefix"))
-
-    for var in "${env_variables[@]}"; do
-        var_name=$(echo "$var" | cut -d "=" -f1)
-        var_value=$(echo "$var" | cut -d "=" -f2-)
-        echo "Biến $var_name có giá trị: $var_value"
-    done
-}
         
 #### START
 
@@ -497,8 +476,8 @@ function main(){
         ;;
     "fa")
         pre_checking
-        run_demo
-        # fa_deploy
+
+        fa_deploy
         
         ;;
     *)
