@@ -412,7 +412,11 @@ function change_name_config(){
                 cp -ra ${i} ${NAME_CHANGE}
             fi
         done
-        ls -a
+        if [[ ! $(command -v ${tools}) ]];then
+            ls -a
+        else
+            tree .
+        fi
     else
         echo "[-] File config of ${STAGE_CURRENT} not found."
     fi
@@ -449,7 +453,7 @@ function fa_check_token_upload(){
     if [[ "${STATUS_CODE}" == "200" ]];then
         echo "##[section][UPLOAD] [${FA_NAME}] SUCCESS"
     else
-        echo "##[error][ERROR] [${FA_NAME}] WITH STATUS CODE: [${STATUS_CODE}]"
+        echo "##[error][UPLOAD] [${FA_NAME}] WITH STATUS CODE ERROR: [${STATUS_CODE}]"
         exit 1
     fi 
 }
