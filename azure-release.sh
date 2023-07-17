@@ -433,7 +433,7 @@ function run_cmd(){
             ${RUN_CMD}
         done
     else
-        echo "[-] Command not found."
+        echo "##[warning][-] Command support not found."
     fi
 }
 
