@@ -223,7 +223,7 @@ function change_var_with_stage(){
     echo "[*] APP_BUILD_NUMBER: ${APP_BUILD_NUMBER}"
     echo "[*] DOCKER_TAG: ${DOCKER_TAG}"
     echo "[*] DOCKER_URL: ${DOCKER_URL}"
-    echo "[*] HELM_VERSION: ${HELM_VERSION}"
+    echo "[*] CHART_VERSION: ${CHART_VERSION}"
     echo "[*] BUILD_MULTI_ENV: ${BUILD_MULTI_ENV}"
     echo "[*] BUILD_ID: ${BUILD_ID}"
     echo "[*] DEPLOY_TYPE: ${DEPLOY_TYPE}"
@@ -234,7 +234,7 @@ function change_var_with_stage(){
 }
 
 function pre_checking(){
-    check_var "SERVICE_NAME GIT_COMMIT_ID APP_BUILD_NUMBER DOCKER_TAG DOCKER_URL HELM_VERSION BUILD_MULTI_ENV BUILD_ID DEPLOY_TYPE STAGE"
+    check_var "SERVICE_NAME GIT_COMMIT_ID APP_BUILD_NUMBER DOCKER_TAG DOCKER_URL CHART_VERSION BUILD_MULTI_ENV BUILD_ID DEPLOY_TYPE STAGE"
     
     check_dependencies "helm kubectl docker"
     
@@ -342,8 +342,8 @@ function helm_deploy(){
     local CURRENT_UNIXTIME=$(date +%s)
     
     upgrade_helm(){
-        echo "Upgrade with application version: ${HELM_VERSION}"
-        if [[ "${HELM_VERSION}" == "latest" || "${HELM_VERSION}" == "" ]];then
+        echo "Upgrade with application version: ${CHART_VERSION}"
+        if [[ "${CHART_VERSION}" == "latest" || "${CHART_VERSION}" == "" ]];then
             helm upgrade ${HELM_RELEASE_NAME} ${HELM_PRIVATE_REPO_NAME}/${HELM_CHART_NAME} \
                 --reuse-values \
                 --namespace ${HELM_NAMESPACE_NAME} \
@@ -352,7 +352,7 @@ function helm_deploy(){
                 --set timestamp="${CURRENT_UNIXTIME}" 2>/dev/null
         else
             helm upgrade ${HELM_RELEASE_NAME} ${HELM_PRIVATE_REPO_NAME}/${HELM_CHART_NAME} \
-                --version ${HELM_VERSION} \
+                --version ${CHART_VERSION} \
                 --reuse-values \
                 --namespace ${HELM_NAMESPACE_NAME} \
                 --set image.repository="${AZ_ACR_ACCOUNT_URL}/${IMAGE_NAME}" \
