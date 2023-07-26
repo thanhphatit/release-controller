@@ -207,7 +207,7 @@ function change_var_with_stage(){
         export K8S_NAMESPACE="${K8S_NS_VNPRD}"
     fi
 
-    if [[ ${BUILD_MULTI_ENV} != "false" || ${BUILD_MULTI_ENV} != "False" ]];then
+    if [[ ${BUILD_MULTI_ENV} == "true" || ${BUILD_MULTI_ENV} == "True" ]];then
         export DOCKER_TAG="${STAGE_CURRENT}.${DOCKER_TAG}"
         export SOURCE_CODE="${SERVICE_NAME}-${STAGE_CURRENT}.zip"
     fi
@@ -273,7 +273,7 @@ function docker_deploy_latest(){
     docker login -u ${AZ_USER} -p ${AZ_PASSWORD} ${AZ_ACR_ACCOUNT_URL} 2> /dev/null
 
     if [[ ! $(docker images --format "{{.Repository}}:{{.Tag}}" | grep "${IMAGE_NAME}:${IMAGE_TAG_BUILD}") ]]; then
-        echo "[>][WARNING] Image ${IMAGE_NAME}:${IMAGE_TAG_BUILD} not found"
+        echo "[>][WARNING] Image [${IMAGE_NAME}:${IMAGE_TAG_BUILD}] not found"
         docker pull ${AZ_ACR_ACCOUNT_URL}/${IMAGE_NAME}:${IMAGE_TAG_BUILD}
     fi
 
