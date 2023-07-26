@@ -268,7 +268,7 @@ function docker_deploy_latest(){
     local IMAGE_NAME="${SERVICE_NAME}" 
     local IMAGE_TAG_BUILD="${DOCKER_TAG}"
     
-    check_var "STAGE_CURRENT IMAGE_NAME IMAGE_TAG_BUILD"
+    check_var "ACR_NAME SERVICE_NAME DOCKER_TAG STAGE_CURRENT"
 
     docker login -u ${AZ_USER} -p ${AZ_PASSWORD} ${AZ_ACR_ACCOUNT_URL} 2> /dev/null
 
