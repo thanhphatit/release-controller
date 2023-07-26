@@ -9,7 +9,7 @@
 set -o pipefail
 
 #### VARIABLES
-OPTION=${1:-k8s} ### Value is k8s or fa
+OPTION=${1:-k8s} ### Value is k8s, aks, eks or fa
 
 STAGE_SYNTAX_DEV=${STAGE_SYNTAX_DEV:-DEV}
 STAGE_SYNTAX_STG=${STAGE_SYNTAX_STG:-STG}
@@ -80,7 +80,7 @@ Usage: azure-release [options...]
 [*] OPTIONS:
     -h, --help            Show help
     -v, --version         Show info and version
-    k8s                   (This is default value) - Start deploy application to k8s
+    k8s, aks              (This is default value) - Start deploy application to k8s, aks
     fa                    Start deploy functions app to Azure 
 
 HELP
@@ -500,7 +500,7 @@ function main(){
     "-h" | "--help")
         help
         ;;
-    "k8s")
+    "k8s" | "aks" | "eks")
         pre_checking
 
         until $(kubectl cluster-info &>/dev/null)
