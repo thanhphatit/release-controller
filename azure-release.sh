@@ -112,7 +112,7 @@ function gitlab_status(){
     local GIT_API_URL="https://${GIT_HOST}/git/api/v4/projects/${GIT_PROJECT_ID}"
 
     if [[ "${GIT_STATE}" == "running" || "${GIT_STATE}" == "success" || "${GIT_STATE}" == "failed" || "${GIT_STATE}" == "pending" ]];then
-        curl --request POST -d "" --header "PRIVATE-TOKEN:${GIT_TOKEN}" "${GIT_API_URL}/statuses/${GIT_COMMIT_ID}?state=${GIT_STATE}&name=${GIT_STATUS_NAME}&target_url=${GIT_TARGET_URL}" &
+        curl --request POST -d "" --header "PRIVATE-TOKEN:${GIT_TOKEN}" "${GIT_API_URL}/statuses/${GIT_COMMIT_ID}?state=${GIT_STATE}&name=${GIT_STATUS_NAME}&target_url=${GIT_TARGET_URL}" &>/dev/null &
         wait
     else
         echo "[ERROR] Syntax ${GIT_STATE}"
