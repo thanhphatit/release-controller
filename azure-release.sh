@@ -106,6 +106,19 @@ ALERTS
     #### Example: check_dependencies "helm" 
 }
 
+function gitlab_status(){
+    check_var "GIT_TARGET_URL GIT_HOST GIT_PROJECT_ID GIT_TOKEN GIT_COMMIT_ID GIT_STATUS_NAME"
+    local GIT_STATE="${1}" ## Example: 'running', 'success', 'failed', 'pending'
+    local GIT_API_URL="https://${GIT_HOST}/git/api/v4/projects/${GIT_PROJECT_ID}"
+
+    if [[ "${GIT_STATE}" =="running" || "${GIT_STATE}" =="success" || "${GIT_STATE}" =="failed" || "${GIT_STATE}" =="pending" ]];then
+        curl --request POST -d "" --header "PRIVATE-TOKEN:${GIT_TOKEN}" "${GIT_API_URL}/statuses/${GIT_COMMIT_ID}?state=${GIT_STATE}&name=${GIT_STATUS_NAME}&target_url=${GIT_TARGET_URL}" &
+        wait
+    else
+        echo "[ERROR] Syntax ${GIT_STATE}"
+    fi
+}
+
 function download_gitaz(){
     ## Function use to download file in git on azure devops
 
@@ -273,7 +286,7 @@ function docker_deploy_latest(){
     docker login -u ${AZ_USER} -p ${AZ_PASSWORD} ${AZ_ACR_ACCOUNT_URL} 2> /dev/null
 
     if [[ ! $(docker images --format "{{.Repository}}:{{.Tag}}" | grep "${IMAGE_NAME}:${IMAGE_TAG_BUILD}") ]]; then
-        echo "[>][WARNING] Image [${IMAGE_NAME}:${IMAGE_TAG_BUILD}] not found"
+        echo "[>][PULL] Image [${IMAGE_NAME}:${IMAGE_TAG_BUILD}]"
         docker pull ${AZ_ACR_ACCOUNT_URL}/${IMAGE_NAME}:${IMAGE_TAG_BUILD} &>/dev/null
     fi
 
@@ -374,6 +387,7 @@ function helm_deploy(){
             echo ""
             docker_deploy_latest 2>/dev/null
             echo "[+] CHECKING: not found Helm Release [${HELM_RELEASE_NAME}] namespace [${HELM_NAMESPACE_NAME}]"
+            gitlab_status "pending"
             exit 1
         else
             echo ""
@@ -383,7 +397,10 @@ function helm_deploy(){
             STATUS_PID_UPGRADE_HELM=$?
 
             if [[ "${STATUS_PID_UPGRADE_HELM}" == "0" ]];then
+                gitlab_status "success"
                 docker_deploy_latest 2>/dev/null
+            else
+                gitlab_status "failed"
             fi
         fi
 
@@ -457,11 +474,13 @@ function fa_check_token_upload(){
         echo "##[section][UPLOAD] [${FA_NAME}] SUCCESS"
         echo "*****************************************************************************************************"
         echo ""
+        gitlab_status "success"
     else
         echo "*****************************************************************************************************"
         echo "##[error][UPLOAD] [${FA_NAME}] WITH STATUS CODE ERROR: [${STATUS_CODE}]"
         echo "*****************************************************************************************************"
         echo ""
+        gitlab_status "failed"
         exit 1
     fi 
 }
@@ -487,8 +506,7 @@ function fa_deploy(){
     echo ""
     fa_check_token_upload
 }
-
-        
+   
 #### START
 
 function main(){
@@ -501,6 +519,8 @@ function main(){
         help
         ;;
     "k8s" | "aks" | "eks")
+        gitlab_status "running"
+
         pre_checking
 
         until $(kubectl cluster-info &>/dev/null)
@@ -511,6 +531,8 @@ function main(){
         helm_deploy 
         ;;
     "fa")
+        gitlab_status "running"
+
         pre_checking
 
         fa_deploy
