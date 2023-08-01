@@ -309,7 +309,7 @@ function helm_deploy(){
 
     echo ""
     echo "[+] Check helm plugin exist again !"
-    helm plugin list 2> /dev/null
+    helm plugin list &>/dev/null
 
     echo ""
     echo "[+] Helm add repository of company"
