@@ -423,13 +423,19 @@ function change_name_config(){
     then
         for i in "${LIST_CHANGE[@]}"
         do
-            if [[ "${i}" = *"${STAGE_CURRENT}"* ]];then
+            if [[ "${i}" = *"-${STAGE_CURRENT}"* ]];then
                 NAME_CHANGE=$(echo "${i}" | sed 's/-'${STAGE_CURRENT}'//')
-                cp -ra ${i} ${NAME_CHANGE}
-            else
-                NAME_CHANGE=$(echo "${i}" | sed 's/.'${STAGE_CURRENT}'//')
-                cp -ra ${i} ${NAME_CHANGE}
             fi
+
+            if [[ "${i}" = *".${STAGE_CURRENT}"* ]];then
+                NAME_CHANGE=$(echo "${i}" | sed 's/.'${STAGE_CURRENT}'//')
+            fi
+
+            if [[ "${i}" = *"_${STAGE_CURRENT}"* ]];then
+                NAME_CHANGE=$(echo "${i}" | sed 's/_'${STAGE_CURRENT}'//')
+            fi
+
+            cp -ra ${i} ${NAME_CHANGE}
         done
         if [[ $(command -v tree) ]];then
             tree .
