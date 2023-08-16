@@ -17,7 +17,8 @@ STAGE_SYNTAX_UAT=${STAGE_SYNTAX_UAT:-UAT}
 STAGE_SYNTAX_PRD=${STAGE_SYNTAX_PRD:-VNPRD}
 STAGE_SYNTAX_DR=${STAGE_SYNTAX_DR:-DR}
 
-HELM_LIST_MAX_LIMIT="--max 2605"
+HELM_LIST_MAX_LIMIT="2605"
+HELM_HISTORY_MAX="50"
 
 #### FUNCTIONS
 
@@ -359,6 +360,7 @@ function helm_deploy(){
         if [[ "${CHART_VERSION}" == "latest" || "${CHART_VERSION}" == "" ]];then
             helm upgrade ${HELM_RELEASE_NAME} ${HELM_PRIVATE_REPO_NAME}/${HELM_CHART_NAME} \
                 --reuse-values \
+                --history-max ${HELM_HISTORY_MAX} \
                 --namespace ${HELM_NAMESPACE_NAME} \
                 --set image.repository="${AZ_ACR_ACCOUNT_URL}/${IMAGE_NAME}" \
                 --set image.tag="${IMAGE_TAG_BUILD}" \
@@ -367,6 +369,7 @@ function helm_deploy(){
             helm upgrade ${HELM_RELEASE_NAME} ${HELM_PRIVATE_REPO_NAME}/${HELM_CHART_NAME} \
                 --version ${CHART_VERSION} \
                 --reuse-values \
+                --history-max ${HELM_HISTORY_MAX} \
                 --namespace ${HELM_NAMESPACE_NAME} \
                 --set image.repository="${AZ_ACR_ACCOUNT_URL}/${IMAGE_NAME}" \
                 --set image.tag="${IMAGE_TAG_BUILD}" \
@@ -381,7 +384,7 @@ function helm_deploy(){
             touch ${LIST_HELM_RELEASE_K8S}
         fi
 
-        helm list -n ${HELM_NAMESPACE_NAME} ${HELM_LIST_MAX_LIMIT} 2>/dev/null > ${LIST_HELM_RELEASE_K8S}
+        helm list -n ${HELM_NAMESPACE_NAME} --max ${HELM_LIST_MAX_LIMIT} 2>/dev/null > ${LIST_HELM_RELEASE_K8S}
 
         if [[ ! "$(grep -i "${HELM_NAMESPACE_NAME}" ${LIST_HELM_RELEASE_K8S} | awk '{print $1}' | grep -i "^${HELM_RELEASE_NAME}$")" ]];then
             echo ""
