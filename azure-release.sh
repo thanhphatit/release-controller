@@ -303,42 +303,49 @@ function apply_config(){
     local _CONFIG_DELETE_LOCK="${CONFIG_DIR}/${_DEPLOY_TYPE}/${STAGE_CURRENT}/delete.lock"
     local _CONFIG_DELETE_MODE="false"
 
-    if [[ ${_DEPLOY_TYPE} == "aks" ]];then
-        echo "[+] Apply & replace secrets/configmap in this directory: ${CONFIG_DIR}/${_DEPLOY_TYPE}/${STAGE_CURRENT}"
-        
-        for file in ${_FILE_TO_FIND_ARRAY[@]}; do
-            find "${CONFIG_DIR}/${_DEPLOY_TYPE}/${STAGE_CURRENT}" -type f -iname "*${file}*" >> ${_TMPFILE_LIST_FILES_CONFIG}
-        done
+    if [[ -d ${CONFIG_DIR} ]];then
+        if [[ ${_DEPLOY_TYPE} == "aks" ]];then
+            echo ""
+            echo "[+] Apply & replace secrets/configmap in this directory: ${CONFIG_DIR}/${_DEPLOY_TYPE}/${STAGE_CURRENT}"
+            
+            for file in ${_FILE_TO_FIND_ARRAY[@]}; do
+                find "${CONFIG_DIR}/${_DEPLOY_TYPE}/${STAGE_CURRENT}" -type f -iname "*${file}*" >> ${_TMPFILE_LIST_FILES_CONFIG}
+            done
 
-        while read file
-        do
-            local _K8S_CONFIG_KIND=$(cat ${file} | grep -i "kind" | awk -F':' '{print $2}' | head -n1 | tr -d ' ')
-            if [[ ${_K8S_CONFIG_KIND} == "Secret" || ${_K8S_CONFIG_KIND} == "Configmaps" ]];then
-                local _K8S_CONFIG_NAMESPACE=$(cat ${file} | grep -i "namespace" | awk -F':' '{print $2}' | head -n1 | tr -d ' ')
+            while read file
+            do
+                local _K8S_CONFIG_KIND=$(cat ${file} | grep -i "kind" | awk -F':' '{print $2}' | head -n1 | tr -d ' ')
+                if [[ ${_K8S_CONFIG_KIND} == "Secret" || ${_K8S_CONFIG_KIND} == "Configmaps" ]];then
+                    local _K8S_CONFIG_NAMESPACE=$(cat ${file} | grep -i "namespace" | awk -F':' '{print $2}' | head -n1 | tr -d ' ')
 
-                if [[ -f ${_CONFIG_DELETE_LOCK} ]];then
-                    _CONFIG_DELETE_MODE="true"
+                    if [[ -f ${_CONFIG_DELETE_LOCK} ]];then
+                        _CONFIG_DELETE_MODE="true"
+                    fi
+
+                    if [[ "${_CONFIG_DELETE_MODE}" == "true" ]];then
+                        continue
+                    fi
+
+                    echo "[>] We are running on namespace: ${_K8S_CONFIG_NAMESPACE}"
+                    # Apply kubectl
+                    kubectl apply -f ${file} 2>/dev/null
+                    # Replace kubectl, save time, we comment this command
+                    kubectl replace -f ${file} 2>/dev/null
+                else
+                    continue 
                 fi
+            done < ${_TMPFILE_LIST_FILES_CONFIG}
 
-                if [[ "${_CONFIG_DELETE_MODE}" == "true" ]];then
-                    continue
-                fi
+            rm -rf ${_TMPFILE_LIST_FILES_CONFIG}
 
-                echo "[>] We are running on namespace: ${_K8S_CONFIG_NAMESPACE}"
-                # Apply kubectl
-                kubectl apply -f ${file} 2>/dev/null
-                # Replace kubectl, save time, we comment this command
-                kubectl replace -f ${file} 2>/dev/null
-            else
-                continue 
-            fi
-        done < ${_TMPFILE_LIST_FILES_CONFIG}
-
-        rm -rf ${_TMPFILE_LIST_FILES_CONFIG}
+        else
+            echo ""
+            echo "[+] Add config in this directory: ${CONFIG_DIR}/${_DEPLOY_TYPE}"
+            cp -ra ${CONFIG_DIR}/${_DEPLOY_TYPE}/* ${DEFINITION_NAME}/${GIT_COMMIT_ID}
+        fi
 
     else
-        echo "[+] Add config in this directory: ${CONFIG_DIR}/${_DEPLOY_TYPE}"
-        cp -ra ${CONFIG_DIR}/${_DEPLOY_TYPE}/* ${DEFINITION_NAME}/${GIT_COMMIT_ID}
+        echo "[WARNING] We can not found dir [${CONFIG_DIR}]!"
     fi
 }
 
@@ -547,12 +554,14 @@ function fa_deploy(){
     check_var "AZ_DEVOPS_USER AZ_DEVOPS_PASSWORD AZ_ORGANIZATION CONFIG_PROJECT CONFIG_REPOS CONFIG_PATH CONFIG_REPO_BRANCH"
     local FILE_EXPORT_NAME='files.zip'
     
-    # download_gitaz "folder" "${AZ_DEVOPS_USER}" "${AZ_DEVOPS_PASSWORD}" "${AZ_ORGANIZATION}" "${CONFIG_PROJECT}" "${CONFIG_REPOS}" "${CONFIG_PATH}" "${CONFIG_REPO_BRANCH}" "${FILE_EXPORT_NAME}"
+    if [[ ! -d ${CONFIG_DIR} ]];then
+        download_gitaz "folder" "${AZ_DEVOPS_USER}" "${AZ_DEVOPS_PASSWORD}" "${AZ_ORGANIZATION}" "${CONFIG_PROJECT}" "${CONFIG_REPOS}" "${CONFIG_PATH}" "${CONFIG_REPO_BRANCH}" "${FILE_EXPORT_NAME}"
 
-    # unzip -jo ${FILE_EXPORT_NAME} -d ${DEFINITION_NAME}/${GIT_COMMIT_ID} &>/dev/null
-    # wait
-
-    apply_config "fa"
+        unzip -jo ${FILE_EXPORT_NAME} -d ${DEFINITION_NAME}/${GIT_COMMIT_ID} &>/dev/null
+        wait
+    else
+        apply_config "fa"
+    fi
     
     ## Change name config file
     cd ${DEFINITION_NAME}/${GIT_COMMIT_ID}
