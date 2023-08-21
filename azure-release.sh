@@ -303,8 +303,12 @@ function apply_config(){
     local _CONFIG_DELETE_LOCK="${CONFIG_DIR}/${_DEPLOY_TYPE}/${STAGE_CURRENT}/delete.lock"
     local _CONFIG_DELETE_MODE="false"
 
+    if [[ -z ${CONFIG_DIR} ]];then
+        echo "##[warning] Environment [CONFIG_DIR] not setting!"
+    fi
+
     if [[ -d ${CONFIG_DIR} ]];then
-        if [[ ${_DEPLOY_TYPE} == "aks" ]];then
+        if [[ ${_DEPLOY_TYPE} == "aks" && -d "${CONFIG_DIR}/aks" ]];then
             echo ""
             echo "[+] Apply & replace secrets/configmap in this directory: ${CONFIG_DIR}/${_DEPLOY_TYPE}/${STAGE_CURRENT}"
             
@@ -344,8 +348,6 @@ function apply_config(){
             cp -ra ${CONFIG_DIR}/${_DEPLOY_TYPE}/* ${DEFINITION_NAME}/${GIT_COMMIT_ID}
         fi
 
-    else
-        echo "[WARNING] We can not found dir [${CONFIG_DIR}]!"
     fi
 }
 
