@@ -477,7 +477,7 @@ function helm_deploy(){
 function change_name_config(){
     check_var "STAGE_CURRENT"
 
-    local LIST_CHANGE=($(ls | grep "${STAGE_CURRENT}"))
+    local LIST_CHANGE=($(ls -a | grep "${STAGE_CURRENT}"))
     local NAME_CHANGE="none"
 
     if [ ! -z "${LIST_CHANGE[0]}" ]
